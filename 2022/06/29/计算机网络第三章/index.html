@@ -20,12 +20,12 @@
     var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
   </script>
 
-  <meta name="description" content="第3章 传输层[TOC] 目标： 理解传输层的工作原理     多路复用&#x2F;解复用     可靠数据传输     流量控制     拥塞控制 学习Internet的传输层协议     UDP：无连接传输     TCP：面向连接的可靠传 输     TCP的拥塞控制 3.1 概述和传输层服务传输服务和协议   为运行在不同主机上的应用进程提供逻辑通信  传输协议运行在端系统  发送">
+  <meta name="description" content="第3章 传输层">
 <meta property="og:type" content="article">
 <meta property="og:title" content="计算机网络第三章 传输层">
 <meta property="og:url" content="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%B8%89%E7%AB%A0/index.html">
 <meta property="og:site_name" content="1205">
-<meta property="og:description" content="第3章 传输层[TOC] 目标： 理解传输层的工作原理     多路复用&#x2F;解复用     可靠数据传输     流量控制     拥塞控制 学习Internet的传输层协议     UDP：无连接传输     TCP：面向连接的可靠传 输     TCP的拥塞控制 3.1 概述和传输层服务传输服务和协议   为运行在不同主机上的应用进程提供逻辑通信  传输协议运行在端系统  发送">
+<meta property="og:description" content="第3章 传输层">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20210725125946183.png">
 <meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20210725125934798.png">
@@ -69,7 +69,7 @@
 <meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20210726150610364.png">
 <meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20210726153615143.png">
 <meta property="article:published_time" content="2022-06-29T11:02:36.204Z">
-<meta property="article:modified_time" content="2022-06-29T11:00:15.650Z">
+<meta property="article:modified_time" content="2022-06-29T11:04:53.700Z">
 <meta property="article:author" content="Baozi">
 <meta property="article:tag" content="Network">
 <meta name="twitter:card" content="summary">
@@ -228,7 +228,7 @@
               <span class="post-meta-item-text">发表于</span>
               
 
-              <time title="创建时间：2022-06-29 19:02:36 / 修改时间：19:00:15" itemprop="dateCreated datePublished" datetime="2022-06-29T19:02:36+08:00">2022-06-29</time>
+              <time title="创建时间：2022-06-29 19:02:36 / 修改时间：19:04:53" itemprop="dateCreated datePublished" datetime="2022-06-29T19:02:36+08:00">2022-06-29</time>
             </span>
             <span class="post-meta-item">
               <span class="post-meta-item-icon">
@@ -272,7 +272,8 @@
     <div class="post-body" itemprop="articleBody">
 
       
-        <h1 id="第3章-传输层"><a href="#第3章-传输层" class="headerlink" title="第3章 传输层"></a>第3章 传输层</h1><p>[TOC]</p>
+        <h1 id="第3章-传输层"><a href="#第3章-传输层" class="headerlink" title="第3章 传输层"></a>第3章 传输层</h1><span id="more"></span>
+<p>[TOC]</p>
 <p>目标：<br> 理解传输层的工作原理<br>     多路复用/解复用<br>     可靠数据传输<br>     流量控制<br>     拥塞控制<br> 学习Internet的传输层协议<br>     UDP：无连接传输<br>     TCP：面向连接的可靠传 输<br>     TCP的拥塞控制</p>
 <h2 id="3-1-概述和传输层服务"><a href="#3-1-概述和传输层服务" class="headerlink" title="3.1 概述和传输层服务"></a>3.1 概述和传输层服务</h2><p>传输服务和协议 </p>
 <ul>
