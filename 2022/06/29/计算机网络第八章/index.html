@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="计算机网络第八章第 8 章 网络安全 本章目标：   网络安全原理:  加密，不仅仅用于机密性  认证  报文完整性  密钥分发    安全实践:  防火墙  各个层次的安全性：应用层，传输层，网络层和链路层    8.1 什么是网络安全？机密性: 只有发送方和预订的接收方能否理解传输的报文内容   发送方加密报文  接收方解密报文  认证: 发送方和接收方需要确认对方的身份  报文完整性: 发送">
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机网络第八层">
+<meta property="og:url" content="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%85%AB%E7%AB%A0/index.html">
+<meta property="og:site_name" content="1205">
+<meta property="og:description" content="计算机网络第八章第 8 章 网络安全 本章目标：   网络安全原理:  加密，不仅仅用于机密性  认证  报文完整性  密钥分发    安全实践:  防火墙  各个层次的安全性：应用层，传输层，网络层和链路层    8.1 什么是网络安全？机密性: 只有发送方和预订的接收方能否理解传输的报文内容   发送方加密报文  接收方解密报文  认证: 发送方和接收方需要确认对方的身份  报文完整性: 发送">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003150436208.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003150803167.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003150833540.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003153247440.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003153512416.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003153728247.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003154039265.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003154754817.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003154439175.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155140347.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155309450.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155357026.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155402400.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155453495.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160213019.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160558153.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160759410.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160937998.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003162002392.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003161055230.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003162046298.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003162123200.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003165035508.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003165303684.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003165506312.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004154803194.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004154826294.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004154853225.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004155311056.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160353350.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160749518.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160830345.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160852343.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163043220.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163051600.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163104288.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163120882.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163149121.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163133733.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163207264.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163238244.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163251925.png">
+<meta property="article:published_time" content="2022-06-29T11:02:36.196Z">
+<meta property="article:modified_time" content="2022-06-29T11:02:19.254Z">
+<meta property="article:author" content="Baozi">
+<meta property="article:tag" content="Network">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003150436208.png">
+
+<link rel="canonical" href="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%85%AB%E7%AB%A0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>计算机网络第八层 | 1205</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="1205" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">1205</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%85%AB%E7%AB%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Baozi">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1205">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          计算机网络第八层
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-06-29 19:02:36 / 修改时间：19:02:19" itemprop="dateCreated datePublished" datetime="2022-06-29T19:02:36+08:00">2022-06-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index"><span itemprop="name">计算机网络</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>4.1k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>4 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="计算机网络第八章"><a href="#计算机网络第八章" class="headerlink" title="计算机网络第八章"></a>计算机网络第八章</h1><p>第 8 章 网络安全</p>
+<p>本章目标： </p>
+<ul>
+<li>网络安全原理: <ul>
+<li>加密，不仅仅用于机密性 </li>
+<li>认证 </li>
+<li>报文完整性 </li>
+<li>密钥分发 </li>
+</ul>
+</li>
+<li>安全实践: <ul>
+<li>防火墙 </li>
+<li>各个层次的安全性：应用层，传输层，网络层和链路层</li>
+</ul>
+</li>
+</ul>
+<h1 id="8-1-什么是网络安全？"><a href="#8-1-什么是网络安全？" class="headerlink" title="8.1 什么是网络安全？"></a>8.1 什么是网络安全？</h1><p><strong>机密性</strong>: 只有发送方和预订的接收方能否理解传输的报文内容 </p>
+<ul>
+<li>发送方加密报文 </li>
+<li>接收方解密报文</li>
+</ul>
+<p><strong>认证</strong>: 发送方和接收方需要<strong>确认对方的身份</strong> </p>
+<p><strong>报文完整性</strong>: 发送方、接受方需要<strong>确认报文在传输的过程中或者事后没有被改变</strong> </p>
+<p><strong>访问控制和服务的可用性</strong>: 服务可以接入 以及 对用户而言是可用的</p>
+<h2 id="朋友和敌人-Alice-Bob-Trudy"><a href="#朋友和敌人-Alice-Bob-Trudy" class="headerlink" title="朋友和敌人: Alice, Bob, Trudy"></a>朋友和敌人: Alice, Bob, Trudy</h2><p>网络安全世界比较著名的模型 </p>
+<ul>
+<li>Bob, Alice (lovers!) 需要安全的通信 </li>
+<li>Trudy (intruder) 可以截获，删除和增加报文</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003150436208.png" alt="image-20211003150436208"></p>
+<h2 id="网络中的坏蛋"><a href="#网络中的坏蛋" class="headerlink" title="网络中的坏蛋"></a>网络中的坏蛋</h2><p>Q: “bad guy”可以干什么?</p>
+<p>A: 很多!</p>
+<ul>
+<li>窃听: 截获报文 </li>
+<li>插入：在连接上插入报文 </li>
+<li>伪装: 可以在分组的源地址写上伪装的地址 </li>
+<li>劫持: 将发送方或者接收方踢出，接管连接 </li>
+<li>拒绝服务: 阻止服务被其他正常用户使用 (e.g.,通过 对资源的过载使用)</li>
+<li>……</li>
+</ul>
+<h2 id="谁有可能是Bob-Alice"><a href="#谁有可能是Bob-Alice" class="headerlink" title="谁有可能是Bob, Alice?"></a>谁有可能是Bob, Alice?</h2><ul>
+<li>… 现实世界中的Bobs和Alices! </li>
+<li>电子交易中的Web browser/server (e.g.,在线 购买) </li>
+<li>在线银行的client/server </li>
+<li>DNS servers </li>
+<li>路由信息的交换 </li>
+<li>其它例子?</li>
+</ul>
+<h1 id="8-2-加密原理"><a href="#8-2-加密原理" class="headerlink" title="8.2 加密原理"></a>8.2 加密原理</h1><h2 id="加密语言"><a href="#加密语言" class="headerlink" title="加密语言"></a>加密语言</h2><ul>
+<li>plaintext  纯文本<br>ciphertext  密文</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003150803167.png" alt="image-20211003150803167"></p>
+<ul>
+<li><p>对称密钥密码学: 发送方和接收方的密钥相同 </p>
+</li>
+<li><p>公开密钥密码学: 发送方使用接收方的公钥进行加密，接收 方使用自己的私钥进行解密</p>
+</li>
+</ul>
+<h2 id="对称密钥加密"><a href="#对称密钥加密" class="headerlink" title="对称密钥加密"></a>对称密钥加密</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003150833540.png" alt="image-20211003150833540"></p>
+<p>对称密钥密码: Bob和Alice共享一个对称式的密钥: K </p>
+<ul>
+<li>e.g., 密钥在单码替换加密方法中是替换模式 </li>
+<li>Q: 但是Bob和Alice如何就这个密钥达成一致呢?</li>
+</ul>
+<p>替换密码: 将一个事情换成另外一个事情</p>
+<ul>
+<li><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003153247440.png" alt="image-20211003153247440"></li>
+</ul>
+<p>Q: 破解这个密码的强度? </p>
+<ul>
+<li>brute force (how hard?) </li>
+<li>other?</li>
+</ul>
+<h2 id="对称密钥加密学-DES"><a href="#对称密钥加密学-DES" class="headerlink" title="对称密钥加密学: DES"></a>对称密钥加密学: DES</h2><p><strong>DES: Data Encryption Standard</strong></p>
+<ul>
+<li>US 加密标准[NIST 1993] </li>
+<li>56-bit 对称密钥, 64-bit明文输入 </li>
+<li>DES有多安全? <ul>
+<li>DES挑战: 56-bit密钥加密的短语 (“Strong cryptography makes the world a safer place”) 被解密，用了4个月的时间 </li>
+<li>可能有后门 </li>
+</ul>
+</li>
+<li>使DES更安全: <ul>
+<li><strong>使用3个key， 3重DES 运算</strong> </li>
+<li><strong>密文分组成串技术</strong></li>
+</ul>
+</li>
+</ul>
+<p>DES operation</p>
+<p>初始替换<br>16 轮一样的函数应用 ，每一轮使用的不 同的48bit密钥<br>最终替换</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003153512416.png" alt="image-20211003153512416"></p>
+<h2 id="块密码"><a href="#块密码" class="headerlink" title="块密码"></a>块密码</h2><ul>
+<li><strong>一个循环：一个 输入bit影响8个 输出bit</strong></li>
+<li><strong>多重循环: 每个输入比特影响所有的输出bit</strong> </li>
+<li><strong>块密码：DES, 3DES, AES</strong></li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003153728247.png" alt="image-20211003153728247"></p>
+<h2 id="AES-Advanced-Encryption-Standard"><a href="#AES-Advanced-Encryption-Standard" class="headerlink" title="AES: Advanced Encryption Standard"></a>AES: Advanced Encryption Standard</h2><ul>
+<li><strong>新的对称密钥NIST标准(Nov. 2001) 用于替换 DES</strong> </li>
+<li><strong>数据128bit成组加密</strong> </li>
+<li><strong>128, 192, or 256 bit keys</strong> </li>
+<li><strong>穷尽法解密如果使用1秒钟破解 DES, 需要花 149万亿年破解AES</strong></li>
+</ul>
+<h2 id="密码块链"><a href="#密码块链" class="headerlink" title="密码块链"></a>密码块链</h2><ul>
+<li>密码块：如果输入 块重复，将会得到 相同的密文块</li>
+<li>密码块链： 异或第i轮 输入 m(i), 与前一轮的密文, c(i-1)   —— <strong>与之前所有的 输入和原文 都有关系</strong><ul>
+<li>c(0) 明文传输到接收端 </li>
+<li>what happens in “HTTP/1.1” scenario from above?</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003154039265.png" alt="image-20211003154039265"></p>
+<h2 id="公开密钥密码学"><a href="#公开密钥密码学" class="headerlink" title="公开密钥密码学"></a>公开密钥密码学</h2><blockquote>
+<p>对称密钥密码学</p>
+<ul>
+<li>需要发送方和接收方对共享式对称密钥达成一 致 </li>
+<li>Q: 但是他们如何第一次达成一致 (特别是他们永远不可能见面的情况下 )?</li>
+</ul>
+</blockquote>
+<p><strong>公开密钥密码学</strong></p>
+<ul>
+<li><strong>完全不同的方法 [Diffie-Hellman76, RSA78]</strong> </li>
+<li><strong>发送方和接收方无需共享密钥</strong> </li>
+<li><strong>一个实体的公钥公诸于众</strong> </li>
+<li><strong>私钥只有他自己知道</strong></li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003154754817.png" alt="image-20211003154754817"></p>
+<h2 id="公开密钥加密算法"><a href="#公开密钥加密算法" class="headerlink" title="公开密钥加密算法"></a>公开密钥加密算法</h2><p>要求:</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003154439175.png" alt="image-20211003154439175"></p>
+<h2 id="RSA-选择密钥"><a href="#RSA-选择密钥" class="headerlink" title="RSA: 选择密钥"></a>RSA: 选择密钥</h2><p><strong>RSA: Rivest, Shamir, Adelson algorithm</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155140347.png" alt="image-20211003155140347"></p>
+<h2 id="RSA-加密-解密"><a href="#RSA-加密-解密" class="headerlink" title="RSA: 加密,解密"></a>RSA: 加密,解密</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155309450.png" alt="image-20211003155309450"></p>
+<h2 id="RSA-为什么"><a href="#RSA-为什么" class="headerlink" title="RSA: 为什么"></a>RSA: 为什么</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155357026.png" alt="image-20211003155357026"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155402400.png" alt="image-20211003155402400"></p>
+<h2 id="RSA-例子"><a href="#RSA-例子" class="headerlink" title="RSA 例子:"></a>RSA 例子:</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003155453495.png" alt="image-20211003155453495"></p>
+<h2 id="RSA-数字签名-——-先解密（私钥）-在加密（公钥）-确认身份"><a href="#RSA-数字签名-——-先解密（私钥）-在加密（公钥）-确认身份" class="headerlink" title="RSA: 数字签名  —— 先解密（私钥） 在加密（公钥） 确认身份"></a>RSA: 数字签名  —— 先解密（私钥） 在加密（公钥） 确认身份</h2><p>下面的特性将在后面非常有用</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160213019.png" alt="image-20211003160213019"></p>
+<p>结果一致!</p>
+<p>解密的几种类型</p>
+<ul>
+<li>加密算法已知，求密钥 </li>
+<li>加密算法和密钥均不知道</li>
+<li>唯密文攻击</li>
+<li>已知明文攻击<ul>
+<li>已经知道部分密文和明文的对应关系</li>
+</ul>
+</li>
+<li>选择明文攻击<ul>
+<li>攻击者能够选择一段明文，并得到密文</li>
+</ul>
+</li>
+</ul>
+<h1 id="8-3-认证"><a href="#8-3-认证" class="headerlink" title="8.3 认证"></a>8.3 认证</h1><ul>
+<li>目标: Bob需要Alice证明她的身份</li>
+<li>Protocol ap1.0: Alice说“I am Alice”</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160558153.png" alt="image-20211003160558153"></p>
+<p>在网络上Bob看不到 Alice, 因此Trudy可以简单地声称她是 Alice</p>
+<h2 id="认证-重新尝试"><a href="#认证-重新尝试" class="headerlink" title="认证:重新尝试"></a>认证:重新尝试</h2><ul>
+<li><strong>Protocol ap2.0: Alice 说 “I am Alice” ，在她发送的IP数据包 中包括了她的IP地址</strong><ul>
+<li><strong>Trudy可以生成一 个分组，包括伪造 的Alice的地址</strong></li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160759410.png" alt="image-20211003160759410"></p>
+<ul>
+<li><strong>Protocol ap3.0: Alice 说 “I am Alice” ，而且传送她的密码来证明.</strong><ul>
+<li>重放攻击playback attack: Trudy记录 Alice 的 分组，事后向Bob重放</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003160937998.png" alt="image-20211003160937998"></p>
+<ul>
+<li><p><strong>Protocol ap3.1: Alice 说 “I am Alice” ，而且传送她的加密之后的密码来证明</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003162002392.png" alt="image-20211003162002392"></p>
+</li>
+</ul>
+<h2 id="目标-避免重放攻击"><a href="#目标-避免重放攻击" class="headerlink" title="目标: 避免重放攻击"></a>目标: 避免重放攻击</h2><ul>
+<li><strong>Nonce: 一生只用一次的整数 (R)</strong>  —— <strong>一次性随机数(nonce):一个生命周期内只用1次的数R.</strong> </li>
+<li><strong>==ap4.0: 为了证明Alice的活跃性, Bob发送给Alice一个nonce, R. Alice 必须返回加密之后的R，使用双方约定好的key==</strong></li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003161055230.png" alt="image-20211003161055230"></p>
+<p>这个协议的缺点是需要共享秘钥！ </p>
+<h2 id="认证-ap5-0"><a href="#认证-ap5-0" class="headerlink" title="认证: ap5.0"></a>认证: ap5.0</h2><p>ap4.0 需要双方共享一个对称式的密钥 </p>
+<ul>
+<li>是否可以通过公开密钥技术进行认证呢?</li>
+</ul>
+<p>ap5.0: 使用nonce,公开密钥加密技术</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003162046298.png" alt="image-20211003162046298"></p>
+<h2 id="ap5-0-安全漏洞-——-中间攻击"><a href="#ap5-0-安全漏洞-——-中间攻击" class="headerlink" title="ap5.0: 安全漏洞 —— 中间攻击"></a>ap5.0: 安全漏洞 —— 中间攻击</h2><p>中间攻击: Trudy 在 Alice (to Bob)和 Bob之间 (to Alice)</p>
+<p><strong>Trudy 用自己的私钥加密   R</strong><br><strong>传给Bob 公钥</strong></p>
+<p><strong>Trudy 截获 Alice 的信息 和 公钥，用Alice 的 公钥 解密 她的 私钥</strong></p>
+<p><strong>Bob 与 Alice 之间的信息全被 Trudy 截获</strong> </p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003162123200.png" alt="image-20211003162123200"></p>
+<p>==<strong>1、怎样可靠地拿到一个实体的公钥 —— 公开密钥</strong>==<br>==<strong>2、拿到公钥之后怎样验证对方的身份 —— 利用对称密钥</strong>==</p>
+<h1 id="8-4-报文完整性"><a href="#8-4-报文完整性" class="headerlink" title="8.4 报文完整性"></a>8.4 报文完整性</h1><h2 id="ap5-0-安全漏洞"><a href="#ap5-0-安全漏洞" class="headerlink" title="ap5.0: 安全漏洞"></a>ap5.0: 安全漏洞</h2><p>中间攻击: Trudy 在 Alice (to Bob)和 Bob之间 (to Alice)</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003165035508.png" alt="image-20211003165035508"></p>
+<ul>
+<li>难以检测: <ul>
+<li>Bob收到了Alice发送的所有报文, 反之亦然. (e.g., so Bob, Alice一个星期以后相见，回忆起以前的会话) </li>
+<li>问题时Trudy也接收到了所有的报文!</li>
+</ul>
+</li>
+</ul>
+<h2 id="数字签名"><a href="#数字签名" class="headerlink" title="数字签名"></a>数字签名</h2><p>数字签名类比于手写签名</p>
+<ul>
+<li>发送方 (Bob) 数字签署了文件, 前提是他(她)是文件 的拥有者/创建者. </li>
+<li><strong>==可验证性，不可伪造性，不可抵赖性==</strong> <ul>
+<li>谁签署：接收方 (Alice)可以向他人证明 是 Bob, 而不是其他 人签署了这个文件 (包括Alice) </li>
+<li>签署了什么：这份文件，而不是其它文件</li>
+</ul>
+</li>
+</ul>
+<h2 id="简单的对m的数字签名："><a href="#简单的对m的数字签名：" class="headerlink" title="简单的对ｍ的数字签名："></a>简单的对ｍ的数字签名：</h2><ul>
+<li><strong>==Bob使用他自己的私钥对m进行了签署 ，创建数字签名 K~B~ (m)==</strong></li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003165303684.png" alt="image-20211003165303684"></p>
+<h2 id="报文摘要"><a href="#报文摘要" class="headerlink" title="报文摘要"></a>报文摘要</h2><p><strong>==对长报文进行公开密钥加密 算法的实施需要耗费大量的时间==</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211003165506312.png" alt="image-20211003165506312"></p>
+<ul>
+<li><p><strong>Goal: 固定长度，容易计算的 “fingerprint”</strong> </p>
+<ul>
+<li>对m使用散列函数H，获得 固定长度的 报文摘要 H(m).</li>
+</ul>
+</li>
+<li><p><strong>散列函数的特性：</strong></p>
+<ul>
+<li><strong>多对1</strong> </li>
+<li><strong>结果固定长度</strong> </li>
+<li><strong>给定一个报文摘要x, 反向计算出原报文在计算上是不可行的x = H(m)</strong></li>
+</ul>
+</li>
+</ul>
+<ul>
+<li>假设Alice收到报文m, 以及数字签名KB (m) </li>
+<li>Alice 使用Bob的公钥KB 对KB (m)进行验证， 判断 KB (KB (m) ) = m是否成立. </li>
+<li>如 KB (KB (m) ) = m成立, 那么签署这个文件的人一定拥有 Bob的私钥. + + - - -</li>
+</ul>
+<p><strong>Alice 可以验证:</strong> —— 只有Bob有自己的私钥</p>
+<ul>
+<li>Bob 签署了m.</li>
+<li>不是其他人签署了m. </li>
+<li>Bob签署了m 而不是m’.</li>
+</ul>
+<p><strong>不可抵赖性:</strong></p>
+<ul>
+<li>Alice可以拿着m,以及数字签名KB (m)到法庭上， 来证明是Bob签署了这个文件 m. </li>
+</ul>
+<h2 id="Internet校验和-弱的散列函数-（容易冲突）"><a href="#Internet校验和-弱的散列函数-（容易冲突）" class="headerlink" title="Internet校验和: 弱的散列函数 （容易冲突）"></a>Internet校验和: 弱的散列函数 （容易冲突）</h2><p>Internet 校验和拥有一些散列函数的特性:</p>
+<ul>
+<li>产生报文m的固定长度的摘要 (16-bit sum) </li>
+<li>多对1的</li>
+</ul>
+<p>但是给定一个散列值，很容易计算出另外一个报文具有同样的散列值: </p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004154803194.png" alt="image-20211004154803194"></p>
+<h2 id="数字签名-对报文摘要进行数字签署"><a href="#数字签名-对报文摘要进行数字签署" class="headerlink" title="数字签名 = 对报文摘要进行数字签署"></a>数字签名 = 对报文摘要进行数字签署</h2><p><strong>Bob 发送数字签名的报文:</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004154826294.png" alt="image-20211004154826294"></p>
+<p><strong>Alice校验签名和报文完整性:</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004154853225.png" alt="image-20211004154853225"></p>
+<h1 id="8-5-密钥分发和证书"><a href="#8-5-密钥分发和证书" class="headerlink" title="8.5 密钥分发和证书"></a>8.5 密钥分发和证书</h1><h2 id="散列函数算法"><a href="#散列函数算法" class="headerlink" title="散列函数算法"></a>散列函数算法</h2><ul>
+<li>MD5散列函数(RFC 1321)被广泛地应用 <ul>
+<li>4个步骤计算出128-bit的报文摘要 </li>
+<li>给定一个任意的128-bit串x, 很难构造出一个报文m 具有相同的摘要x.</li>
+</ul>
+</li>
+<li>SHA-1也被使用.<ul>
+<li>US标准 [NIST, FIPS PUB 180-1] </li>
+<li>160-bit报文摘要</li>
+</ul>
+</li>
+</ul>
+<h2 id="可信赖中介"><a href="#可信赖中介" class="headerlink" title="可信赖中介"></a>可信赖中介</h2><h3 id="对称密钥问题"><a href="#对称密钥问题" class="headerlink" title="对称密钥问题"></a>对称密钥问题</h3><ul>
+<li>相互通信的实体如何分享对<br>称式的密钥?</li>
+</ul>
+<p>解决办法: —— 可信赖中介</p>
+<ul>
+<li><strong>trusted key distribution center (KDC) 在实体之间扮演可信赖中介的角色</strong></li>
+</ul>
+<h3 id="公共密钥问题-——-可信赖的CA-证书"><a href="#公共密钥问题-——-可信赖的CA-证书" class="headerlink" title="公共密钥问题 —— 可信赖的CA 证书"></a>公共密钥问题 —— 可信赖的CA 证书</h3><ul>
+<li>当Alice获得Bob的公钥 (from web site, e-mail, diskette), 她如何知道就 是Bob的public key, 而不 是Trudy的?</li>
+</ul>
+<p>解决办法: </p>
+<ul>
+<li><strong>可信赖的certification authority (CA)</strong></li>
+</ul>
+<h2 id="Key-Distribution-Center-KDC"><a href="#Key-Distribution-Center-KDC" class="headerlink" title="Key Distribution Center (KDC)"></a>Key Distribution Center (KDC)</h2><ul>
+<li><strong>Alice, Bob 需要分享对称式密钥。</strong></li>
+<li><strong>KDC: 服务器和每一个注册用户都分享一个对称式的密钥 (many users)</strong> </li>
+<li><strong>Alice, Bob在和KDC通信的时候，知道他们自己的对称式 密钥 KA-KDC、KB-KDC.</strong></li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004155311056.png" alt="image-20211004155311056"></p>
+<p><strong>==共享R1，使用R1作为对称式的会话密钥==</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160353350.png" alt="image-20211004160353350"></p>
+<h2 id="Certification-Authorities"><a href="#Certification-Authorities" class="headerlink" title="Certification Authorities"></a>Certification Authorities</h2><ul>
+<li><p><strong>Certification authority (CA): 将每一个注册实体E和他的公钥捆绑.</strong></p>
+</li>
+<li><p>E (person, router) 到CA那里注册他的公钥. </p>
+<ul>
+<li>E 提供给CA，自己身份的证据 “proof of identity” </li>
+<li>CA创建一个证书，捆绑了 实体信息和他的公钥. </li>
+<li><strong>Certificate包括了E的公钥，而且是被CA签署的（被CA用自己的私钥加了密的） – CA说 “this is E’s public key”</strong></li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160749518.png" alt="image-20211004160749518"></p>
+<p>当Alice需要拿到Bob公钥 </p>
+<ul>
+<li><strong>获得Bob的证书certificate (从Bob或者其他地方).</strong> </li>
+<li><strong>对Bob的证书，使用CA的公钥来验证</strong></li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160830345.png" alt="image-20211004160830345"></p>
+<h3 id="证书包括"><a href="#证书包括" class="headerlink" title="证书包括:"></a>证书包括:</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004160852343.png" alt="image-20211004160852343"></p>
+<h1 id="8-6-各个层次的安全性"><a href="#8-6-各个层次的安全性" class="headerlink" title="8.6 各个层次的安全性"></a>8.6 各个层次的安全性</h1><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163043220.png" alt="image-20211004163043220"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163051600.png" alt="image-20211004163051600"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163104288.png" alt="image-20211004163104288"></p>
+<h2 id="SSL"><a href="#SSL" class="headerlink" title="SSL"></a>SSL</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163120882.png" alt="image-20211004163120882"></p>
+<h2 id="SSL-3阶段"><a href="#SSL-3阶段" class="headerlink" title="SSL: 3阶段"></a>SSL: 3阶段</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163149121.png" alt="image-20211004163149121"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163133733.png" alt="image-20211004163133733"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163207264.png" alt="image-20211004163207264"></p>
+<h2 id="IPsec-网络层次的安全性"><a href="#IPsec-网络层次的安全性" class="headerlink" title="IPsec: 网络层次的安全性"></a>IPsec: 网络层次的安全性</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163238244.png" alt="image-20211004163238244"></p>
+<h2 id="ESP-协议"><a href="#ESP-协议" class="headerlink" title="ESP 协议"></a>ESP 协议</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211004163251925.png" alt="image-20211004163251925"></p>
+<p>8.6 访问控制：防火墙 </p>
+<p>8.7 攻击和对策</p>
+<h1 id="网络安全-总结"><a href="#网络安全-总结" class="headerlink" title="网络安全 (总结)"></a>网络安全 (总结)</h1><ul>
+<li>基本原理 <ul>
+<li>加密 (对称和公开) </li>
+<li>报文完整性 </li>
+<li>端节点的认证（鉴别） </li>
+</ul>
+</li>
+<li>在多种安全场景中使用 <ul>
+<li>安全电子邮件 </li>
+<li>安全传输层 (SSL) </li>
+<li>IP sec </li>
+<li>802.11 </li>
+</ul>
+</li>
+<li><strong>运行中的安全性: firewalls and IDS</strong></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Network/" rel="tag"># Network</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/06/29/%E7%9A%B1%E5%AF%85%E8%8B%B1%E8%AF%AD%E8%AF%AD%E6%B3%95/" rel="prev" title="邹寅英语语法">
+      <i class="fa fa-chevron-left"></i> 邹寅英语语法
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%BA%8C%E7%AB%A0/" rel="next" title="计算机网络第二章 应用层">
+      计算机网络第二章 应用层 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%85%AB%E7%AB%A0"><span class="nav-number">1.</span> <span class="nav-text">计算机网络第八章</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-1-%E4%BB%80%E4%B9%88%E6%98%AF%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8%EF%BC%9F"><span class="nav-number">2.</span> <span class="nav-text">8.1 什么是网络安全？</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%9C%8B%E5%8F%8B%E5%92%8C%E6%95%8C%E4%BA%BA-Alice-Bob-Trudy"><span class="nav-number">2.1.</span> <span class="nav-text">朋友和敌人: Alice, Bob, Trudy</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E4%B8%AD%E7%9A%84%E5%9D%8F%E8%9B%8B"><span class="nav-number">2.2.</span> <span class="nav-text">网络中的坏蛋</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B0%81%E6%9C%89%E5%8F%AF%E8%83%BD%E6%98%AFBob-Alice"><span class="nav-number">2.3.</span> <span class="nav-text">谁有可能是Bob, Alice?</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-2-%E5%8A%A0%E5%AF%86%E5%8E%9F%E7%90%86"><span class="nav-number">3.</span> <span class="nav-text">8.2 加密原理</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A0%E5%AF%86%E8%AF%AD%E8%A8%80"><span class="nav-number">3.1.</span> <span class="nav-text">加密语言</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E7%A7%B0%E5%AF%86%E9%92%A5%E5%8A%A0%E5%AF%86"><span class="nav-number">3.2.</span> <span class="nav-text">对称密钥加密</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%B9%E7%A7%B0%E5%AF%86%E9%92%A5%E5%8A%A0%E5%AF%86%E5%AD%A6-DES"><span class="nav-number">3.3.</span> <span class="nav-text">对称密钥加密学: DES</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9D%97%E5%AF%86%E7%A0%81"><span class="nav-number">3.4.</span> <span class="nav-text">块密码</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#AES-Advanced-Encryption-Standard"><span class="nav-number">3.5.</span> <span class="nav-text">AES: Advanced Encryption Standard</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%AF%86%E7%A0%81%E5%9D%97%E9%93%BE"><span class="nav-number">3.6.</span> <span class="nav-text">密码块链</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AC%E5%BC%80%E5%AF%86%E9%92%A5%E5%AF%86%E7%A0%81%E5%AD%A6"><span class="nav-number">3.7.</span> <span class="nav-text">公开密钥密码学</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AC%E5%BC%80%E5%AF%86%E9%92%A5%E5%8A%A0%E5%AF%86%E7%AE%97%E6%B3%95"><span class="nav-number">3.8.</span> <span class="nav-text">公开密钥加密算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RSA-%E9%80%89%E6%8B%A9%E5%AF%86%E9%92%A5"><span class="nav-number">3.9.</span> <span class="nav-text">RSA: 选择密钥</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RSA-%E5%8A%A0%E5%AF%86-%E8%A7%A3%E5%AF%86"><span class="nav-number">3.10.</span> <span class="nav-text">RSA: 加密,解密</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RSA-%E4%B8%BA%E4%BB%80%E4%B9%88"><span class="nav-number">3.11.</span> <span class="nav-text">RSA: 为什么</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RSA-%E4%BE%8B%E5%AD%90"><span class="nav-number">3.12.</span> <span class="nav-text">RSA 例子:</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#RSA-%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D-%E2%80%94%E2%80%94-%E5%85%88%E8%A7%A3%E5%AF%86%EF%BC%88%E7%A7%81%E9%92%A5%EF%BC%89-%E5%9C%A8%E5%8A%A0%E5%AF%86%EF%BC%88%E5%85%AC%E9%92%A5%EF%BC%89-%E7%A1%AE%E8%AE%A4%E8%BA%AB%E4%BB%BD"><span class="nav-number">3.13.</span> <span class="nav-text">RSA: 数字签名  —— 先解密（私钥） 在加密（公钥） 确认身份</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-3-%E8%AE%A4%E8%AF%81"><span class="nav-number">4.</span> <span class="nav-text">8.3 认证</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%A4%E8%AF%81-%E9%87%8D%E6%96%B0%E5%B0%9D%E8%AF%95"><span class="nav-number">4.1.</span> <span class="nav-text">认证:重新尝试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%9B%AE%E6%A0%87-%E9%81%BF%E5%85%8D%E9%87%8D%E6%94%BE%E6%94%BB%E5%87%BB"><span class="nav-number">4.2.</span> <span class="nav-text">目标: 避免重放攻击</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%AE%A4%E8%AF%81-ap5-0"><span class="nav-number">4.3.</span> <span class="nav-text">认证: ap5.0</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ap5-0-%E5%AE%89%E5%85%A8%E6%BC%8F%E6%B4%9E-%E2%80%94%E2%80%94-%E4%B8%AD%E9%97%B4%E6%94%BB%E5%87%BB"><span class="nav-number">4.4.</span> <span class="nav-text">ap5.0: 安全漏洞 —— 中间攻击</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-4-%E6%8A%A5%E6%96%87%E5%AE%8C%E6%95%B4%E6%80%A7"><span class="nav-number">5.</span> <span class="nav-text">8.4 报文完整性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ap5-0-%E5%AE%89%E5%85%A8%E6%BC%8F%E6%B4%9E"><span class="nav-number">5.1.</span> <span class="nav-text">ap5.0: 安全漏洞</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D"><span class="nav-number">5.2.</span> <span class="nav-text">数字签名</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%80%E5%8D%95%E7%9A%84%E5%AF%B9m%E7%9A%84%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D%EF%BC%9A"><span class="nav-number">5.3.</span> <span class="nav-text">简单的对ｍ的数字签名：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8A%A5%E6%96%87%E6%91%98%E8%A6%81"><span class="nav-number">5.4.</span> <span class="nav-text">报文摘要</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Internet%E6%A0%A1%E9%AA%8C%E5%92%8C-%E5%BC%B1%E7%9A%84%E6%95%A3%E5%88%97%E5%87%BD%E6%95%B0-%EF%BC%88%E5%AE%B9%E6%98%93%E5%86%B2%E7%AA%81%EF%BC%89"><span class="nav-number">5.5.</span> <span class="nav-text">Internet校验和: 弱的散列函数 （容易冲突）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%B0%E5%AD%97%E7%AD%BE%E5%90%8D-%E5%AF%B9%E6%8A%A5%E6%96%87%E6%91%98%E8%A6%81%E8%BF%9B%E8%A1%8C%E6%95%B0%E5%AD%97%E7%AD%BE%E7%BD%B2"><span class="nav-number">5.6.</span> <span class="nav-text">数字签名 &#x3D; 对报文摘要进行数字签署</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-5-%E5%AF%86%E9%92%A5%E5%88%86%E5%8F%91%E5%92%8C%E8%AF%81%E4%B9%A6"><span class="nav-number">6.</span> <span class="nav-text">8.5 密钥分发和证书</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%A3%E5%88%97%E5%87%BD%E6%95%B0%E7%AE%97%E6%B3%95"><span class="nav-number">6.1.</span> <span class="nav-text">散列函数算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8F%AF%E4%BF%A1%E8%B5%96%E4%B8%AD%E4%BB%8B"><span class="nav-number">6.2.</span> <span class="nav-text">可信赖中介</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E7%A7%B0%E5%AF%86%E9%92%A5%E9%97%AE%E9%A2%98"><span class="nav-number">6.2.1.</span> <span class="nav-text">对称密钥问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%85%AC%E5%85%B1%E5%AF%86%E9%92%A5%E9%97%AE%E9%A2%98-%E2%80%94%E2%80%94-%E5%8F%AF%E4%BF%A1%E8%B5%96%E7%9A%84CA-%E8%AF%81%E4%B9%A6"><span class="nav-number">6.2.2.</span> <span class="nav-text">公共密钥问题 —— 可信赖的CA 证书</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Key-Distribution-Center-KDC"><span class="nav-number">6.3.</span> <span class="nav-text">Key Distribution Center (KDC)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Certification-Authorities"><span class="nav-number">6.4.</span> <span class="nav-text">Certification Authorities</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AF%81%E4%B9%A6%E5%8C%85%E6%8B%AC"><span class="nav-number">6.4.1.</span> <span class="nav-text">证书包括:</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#8-6-%E5%90%84%E4%B8%AA%E5%B1%82%E6%AC%A1%E7%9A%84%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">7.</span> <span class="nav-text">8.6 各个层次的安全性</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#SSL"><span class="nav-number">7.1.</span> <span class="nav-text">SSL</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SSL-3%E9%98%B6%E6%AE%B5"><span class="nav-number">7.2.</span> <span class="nav-text">SSL: 3阶段</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IPsec-%E7%BD%91%E7%BB%9C%E5%B1%82%E6%AC%A1%E7%9A%84%E5%AE%89%E5%85%A8%E6%80%A7"><span class="nav-number">7.3.</span> <span class="nav-text">IPsec: 网络层次的安全性</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ESP-%E5%8D%8F%E8%AE%AE"><span class="nav-number">7.4.</span> <span class="nav-text">ESP 协议</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%AE%89%E5%85%A8-%E6%80%BB%E7%BB%93"><span class="nav-number">8.</span> <span class="nav-text">网络安全 (总结)</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Baozi</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Baozi</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">140k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:07</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

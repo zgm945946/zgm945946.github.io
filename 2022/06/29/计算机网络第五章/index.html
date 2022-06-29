@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="第5章：网络层控制平面 本章目标：理解网络层控制平面的工作原理 传统路由选择算法 SDN 控制器 ICMP:Internet Control Message Protocol 网络管理（略）  以及它们在互联网上的实例和实现: OSPF, BGP, OpenFlow, ODL 和ONOS控制器, ICMP, SNMP  5.1 导论网络层功能回顾:2个网络层功能:  转发:将分组从路由器">
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机网络第五章 网络层控制平面">
+<meta property="og:url" content="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%BA%94%E7%AB%A0/index.html">
+<meta property="og:site_name" content="1205">
+<meta property="og:description" content="第5章：网络层控制平面 本章目标：理解网络层控制平面的工作原理 传统路由选择算法 SDN 控制器 ICMP:Internet Control Message Protocol 网络管理（略）  以及它们在互联网上的实例和实现: OSPF, BGP, OpenFlow, ODL 和ONOS控制器, ICMP, SNMP  5.1 导论网络层功能回顾:2个网络层功能:  转发:将分组从路由器">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001182236954.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001182317151.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001184712732.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001184806495.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001184954715.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001224205074.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001224742043.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001230058910.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002003536511.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002003950243.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002004447848.png">
+<meta property="og:image" content="c:/Users/20662/AppData/Roaming/Typora/typora-user-images/image-20211002004517248.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002005838258.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002010557843.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002010843273.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012113751.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012204557.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012336956.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012514899.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012604939.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012712585.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012915419.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002112809523.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002113230006.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002113320727.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002144643968.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002161034218.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002161049443.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002161616471.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002170733474.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002172739773.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173250939.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173303211.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173448692.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173459816.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173514916.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173523394.png">
+<meta property="article:published_time" content="2022-06-29T11:02:36.209Z">
+<meta property="article:modified_time" content="2022-06-29T11:01:43.904Z">
+<meta property="article:author" content="Baozi">
+<meta property="article:tag" content="Network">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001182236954.png">
+
+<link rel="canonical" href="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%BA%94%E7%AB%A0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>计算机网络第五章 网络层控制平面 | 1205</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="1205" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">1205</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%BA%94%E7%AB%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Baozi">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1205">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          计算机网络第五章 网络层控制平面
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-06-29 19:02:36 / 修改时间：19:01:43" itemprop="dateCreated datePublished" datetime="2022-06-29T19:02:36+08:00">2022-06-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index"><span itemprop="name">计算机网络</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>8k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>7 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="第5章：网络层控制平面"><a href="#第5章：网络层控制平面" class="headerlink" title="第5章：网络层控制平面"></a>第5章：网络层控制平面</h1><blockquote>
+<p>本章目标：理解网络层控制平面的工作原理<br> 传统路由选择算法<br> SDN 控制器<br> ICMP:Internet Control Message Protocol<br> 网络管理（略） </p>
+<p>以及它们在互联网上的实例和实现:<br> OSPF, BGP, OpenFlow, ODL 和ONOS控制器, ICMP, SNMP</p>
+</blockquote>
+<h1 id="5-1-导论"><a href="#5-1-导论" class="headerlink" title="5.1 导论"></a>5.1 导论</h1><h2 id="网络层功能"><a href="#网络层功能" class="headerlink" title="网络层功能"></a>网络层功能</h2><p>回顾:2个网络层功能:</p>
+<ul>
+<li><strong>转发:将分组从路由器的一数据平面</strong><br><strong>个输入端口移到合适的输出端口</strong></li>
+<li><strong>路由:确定分组从源到目标控制平面的路径</strong></li>
+</ul>
+<p>2种构建网络控制平面功能的方法:</p>
+<ul>
+<li><p><strong>每个路由器控制功能实现（传统)</strong></p>
+</li>
+<li><p><strong>逻辑上集中的控制功能实现(software defined networking)</strong></p>
+</li>
+</ul>
+<h3 id="传统方式：每-路由器-Per-router-控制平面"><a href="#传统方式：每-路由器-Per-router-控制平面" class="headerlink" title="传统方式：每-路由器(Per-router)控制平面"></a>传统方式：每-路由器(Per-router)控制平面</h3><p>在每一个路由器中的单独路由器算法元件，在控制平面进行 交互</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001182236954.png" alt="image-20211001182236954"></p>
+<h3 id="SDN方式：逻辑上集中的控制平面"><a href="#SDN方式：逻辑上集中的控制平面" class="headerlink" title="SDN方式：逻辑上集中的控制平面"></a>SDN方式：逻辑上集中的控制平面</h3><p>一个不同的（通常是远程的）控制器与本地控制代理（CAs） 交互.</p>
+<p>上发状态，下发流表</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001182317151.png" alt="image-20211001182317151"></p>
+<h1 id="5-2-路由选择算法"><a href="#5-2-路由选择算法" class="headerlink" title="5.2 路由选择算法"></a>5.2 路由选择算法</h1><p> link state  distance vector</p>
+<h2 id="路由-route-的概念"><a href="#路由-route-的概念" class="headerlink" title="路由(route)的概念"></a>路由(route)的概念</h2><ul>
+<li><strong>路由:按照某种指标(传输延迟,所经过的站点数目等)找到一条从源节点到目标节点的较好路径</strong> <ul>
+<li>较好路径: 按照某种指标较小的路径 </li>
+<li>指标:站数, 延迟,费用,队列长度等, 或者是一些单纯指标的加权平均 </li>
+<li>采用什么样的指标,表示网络使用者希望网络在什么方面表现突出,什么指标网络使用者比较重视 </li>
+</ul>
+</li>
+<li><p><strong>以网络为单位进行路由（路由信息通告+路由计算）</strong>   <strong>==一个子网 一个子网 进行路由==</strong></p>
+<ul>
+<li>网络为单位进行路由，路由信息传输、计算和匹配的代价低 </li>
+<li>前提条件是：一个网络所有节点地址前缀相同，且物理上聚集 </li>
+<li>路由就是：计算网络 到其他网络如何走的问题</li>
+</ul>
+</li>
+<li><p><strong>网络到网络的路由= 路由器-路由器之间路由</strong> </p>
+<ul>
+<li>网络对应的路由器  到  其他网络对应的路由器的路由 </li>
+<li><strong>在一个网络中：路由器-主机之间的通信，链路层解决</strong> </li>
+</ul>
+</li>
+<li>到了这个路由器就是到了这个网络</li>
+</ul>
+<h3 id="网络的图抽象"><a href="#网络的图抽象" class="headerlink" title="网络的图抽象"></a>网络的图抽象</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001184712732.png" alt="image-20211001184712732"></p>
+<p>==<strong>N = 路由器集合 = { u, v, w, x, y, z }</strong>==<br>==<strong>E = 链路集合 ={ (u,v), (u,x), (v,x), (v,w), (x,w), (x,y), (w,y), (w,z), (y,z) } 边有代价</strong>==</p>
+<h3 id="图抽象：边和路径的代价"><a href="#图抽象：边和路径的代价" class="headerlink" title="图抽象：边和路径的代价"></a>图抽象：边和路径的代价</h3><p>• c(x,x’) = 链路的代价 (x,x’) - e.g., c(w,z) = 5<br>•代价可能总为１<br>•或是 链路带宽的倒数<br>•或是 拥塞情况的倒数</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001184806495.png" alt="image-20211001184806495"></p>
+<p>路由的输入：拓扑、边的代价、源节点<br>输出的输出：源节点的汇集树</p>
+<h3 id="最优化原则-optimality-principle"><a href="#最优化原则-optimality-principle" class="headerlink" title="最优化原则(optimality principle)"></a>最优化原则(optimality principle)</h3><ul>
+<li>汇集树(sink tree)    ——  Dijkstra算法、Bellman-Ford算法<ul>
+<li><strong>此节点到所有其它节点的最优路径形成的树</strong>        <strong>==(源节点)==</strong>    到源节点的最短距离</li>
+<li><strong>路由选择算法就是为所有路由器找到并使用汇集树</strong></li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001184954715.png" alt="image-20211001184954715"></p>
+<h2 id="路由的原则"><a href="#路由的原则" class="headerlink" title="路由的原则"></a>路由的原则</h2><p>路由选择算法的原则 </p>
+<ul>
+<li>正确性(correctness):算法必须是正确的和完整的,使分 组一站一站接力，正确发向目标站；完整：目标所有的 站地址，在路由表中都能找到相应的表项；没有处理不 了的目标站地址； </li>
+<li>简单性(simplicity):算法在计算机上应简单：最优但复杂 的算法，时间上延迟很大，不实用，不应为了获取路由 信息增加很多的通信量； </li>
+<li>健壮性(robustness):算法应能适应通信量和网络拓扑的 变化：通信量变化，网络拓扑的变化算法能很快适应； 不向很拥挤的链路发数据，不向断了的链路发送数据；</li>
+<li>稳定性(stability)：产生的路由不应该摇摆 </li>
+<li>公平性(fairness)：对每一个站点都公平 </li>
+<li>最优性(optimality)：某一个指标的最优，时间上，费用 上，等指标，或综合指标；实际上，获取最优的结果代价较高，可以是次优的</li>
+</ul>
+<h3 id="路由算法分类"><a href="#路由算法分类" class="headerlink" title="路由算法分类"></a>路由算法分类</h3><p>全局或者局部路由信息?</p>
+<p>全局:<br> 所有的路由器拥有完整的拓和边的代价的信息<br> <strong>==“link state” 算法==</strong> </p>
+<p>分布式:<br> 路由器只知道与它有物理连接 关系的邻居路由器，和到相应 邻居路由器的代价值<br> 叠代地与邻居交换路由信息、 计算路由信息<br> <strong>==“distance vector” 算法==</strong></p>
+<p>静态或者动态的?</p>
+<ul>
+<li><strong>静态:</strong><br><strong> 路由随时间变化缓慢</strong><br><strong>非自适应算法(non-adaptive algorithm)： 不能适应网络拓扑和通信量的变化,路由表是事先计算好的</strong></li>
+<li><strong>动态:</strong><br><strong> 路由变化很快</strong><br><strong> 周期性更新</strong><br><strong> 根据链路代价的变化而变化</strong><br><strong>自适应路由选择(adaptive algorithm)：能适应网络拓扑和通信量的变化</strong>   ——    网络拓扑状态和边的代价状态</li>
+</ul>
+<h2 id="路由选择算法-link-state-（全局）"><a href="#路由选择算法-link-state-（全局）" class="headerlink" title="路由选择算法 link state （全局）"></a>路由选择算法 link state （全局）</h2><h3 id="LS路由的工作过程"><a href="#LS路由的工作过程" class="headerlink" title="LS路由的工作过程"></a>LS路由的工作过程</h3><p>配置LS路由选择算法的路由工作过程 </p>
+<ul>
+<li>各点通过各种渠道获得整个网络拓扑, 网络中所有链路代价等信息<strong>（这部分和算法没关系，属于协议和实现）</strong> </li>
+<li>使用LS路由算法,计算本站点到其它站点的最优路径(汇集树),得到路由表</li>
+<li>按照此路由表转发分组(datagram方式) <ul>
+<li>严格意义上说不是路由的一个步骤 </li>
+<li>分发到输入端口的网络层</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001224205074.png" alt="image-20211001224205074"></p>
+<h3 id="链路状态路由选择-link-state-routing"><a href="#链路状态路由选择-link-state-routing" class="headerlink" title="链路状态路由选择(link state routing)"></a>链路状态路由选择(link state routing)</h3><p>LS路由的基本工作过程 </p>
+<ol>
+<li><p><strong>发现相邻节点,获知对方网络地址</strong> </p>
+</li>
+<li><p><strong>测量到相邻节点的代价(延迟,开销)</strong> </p>
+</li>
+<li><p><strong>组装一个LS分组,描述它到相邻节点的代价情况</strong> </p>
+</li>
+<li><p><strong>将分组通过扩散的方法发到所有其它路由器 以上4步让每个路由器获得拓扑和边代价</strong> </p>
+</li>
+<li><p><strong>通过Dijkstra算法找出最短路径（这才是路由算法）</strong> </p>
+<ol>
+<li><p>每个节点独立算出来到其他节点（路由器=网络）的最 短路径 </p>
+</li>
+<li><p>迭代算法：第k步能够知道本节点到k个其他节点的最 短路径</p>
+</li>
+</ol>
+</li>
+</ol>
+<p>==<a target="_blank" rel="noopener" href="https://leetcode-cn.com/problems/number-of-islands/">200. 岛屿数量</a>  —— 类似泛洪  FloodFill 算法==</p>
+<ol>
+<li>发现相邻节点,获知对方网络地址<br> <strong>一个路由器上电之后,向所有线路发送HELLO分组</strong><br> <strong>其它路由器收到HELLO分组,回送应答,在应答分组中,告知自己的名字(全局唯一)</strong><br> <strong>在LAN中,通过广播HELLO分组,获得其它路由器的信息, 可以认为引入一个人工节点</strong></li>
+</ol>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001224742043.png" alt="image-20211001224742043"></p>
+<ol>
+<li><p>测量到相邻节点的代价(延迟,开销)<br> <strong>实测法,发送一个分组要求对方立即响应</strong><br> 回送一个ECHO分组<br> 通过测量时间可以估算出延迟情况</p>
+</li>
+<li><p>组装一个分组,描述相邻节点的情况<br> <strong>发送者名称</strong><br> 序号,年龄<br> 列表: 给出它相邻节点,和它到相邻节点的延迟</p>
+</li>
+</ol>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001230058910.png" alt="image-20211001230058910"></p>
+<ol>
+<li><p>将分组通过扩散的方法发到所有其它路由器 </p>
+<ul>
+<li><p><strong>顺序号:用于控制无穷的扩散,每个路由器都记录( 源路由器,顺序号),发现重复的或老的就不扩散</strong> </p>
+<ul>
+<li>具体问题1: 循环使用问题 </li>
+<li>具体问题2: 路由器崩溃之后序号从0开始 </li>
+<li>具体问题3:序号出现错误 </li>
+</ul>
+</li>
+<li><p><strong>解决问题的办法:年龄字段(age)</strong> </p>
+<ul>
+<li><strong>生成一个分组时,年龄字段不为0</strong> </li>
+<li><strong>每个一个时间段,AGE字段减1</strong> </li>
+<li><strong>AGE字段为0的分组将被抛弃</strong></li>
+</ul>
+</li>
+<li><p>关于扩散分组的数据结构<br> <strong>Source</strong> :从哪个节点收到LS分组<br> <strong>Seq,Age</strong>:序号,年龄<br> <strong>Send flags</strong>:发送标记,必须向指定的哪些相邻站点转发LS分组<br> <strong>ACK flags</strong>:本站点必须向哪些相邻站点发送应答<br> <strong>DATA</strong>:来自source站点的LS分组  </p>
+</li>
+<li><p>节点B的数据结构</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002003536511.png" alt="image-20211002003536511"></p>
+</li>
+</ul>
+</li>
+<li><p>通过Dijkstra算法找出最短路径 </p>
+<ol>
+<li>路由器获得各站点LS分组和整个网络的拓扑 </li>
+<li>通过Dijkstra算法计算出到其它各路由器的最短 路径(汇集树) </li>
+<li>将计算结果安装到路由表中</li>
+</ol>
+</li>
+</ol>
+<h3 id="LS路由选择算法的工作原理"><a href="#LS路由选择算法的工作原理" class="headerlink" title="LS路由选择算法的工作原理"></a>LS路由选择算法的工作原理</h3><ul>
+<li><p>LS (link state) 的应用情况</p>
+<ul>
+<li>OSPF协议是一种LS协议,被用于Internet上 </li>
+<li>IS-IS(intermediate system- intermediate system): 被用于Internet主干中, Netware </li>
+</ul>
+</li>
+<li><p>符号标记:<br>c(i,j): 从节点i 到j链路代价(初始状态下非相邻节点之间的 链路代价为∞)<br>D(v): 从源节点到节点V的当前路径代价(节点的代价)<br>p(v): 从源到节点V的路径前序节点<br>N’: 当前已经知道最优路径的的节点集合(永久节点的集合)</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002003950243.png" alt="image-20211002003950243"></p>
+</li>
+<li><p>LS路由选择算法的工作原理</p>
+<ul>
+<li>节点标记: 每一个节点使用(D(v),p(v)) 如： (3,B)标记 <ul>
+<li>D(v)从源节点由已知最优路径到达本节点的距离 </li>
+<li>P(v)前序节点来标注 </li>
+</ul>
+</li>
+<li>2类节点 <ul>
+<li>临时节点(tentative node) :还没有找到从源 节点到此节点的最优路径的节点 </li>
+<li>永久节点(permanent node) N’:已经找到了从 源节点到此节点的最优路径的节点</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<ul>
+<li> 初始化 <ul>
+<li>除了源节点外,所有节点都为临时节点 </li>
+<li>节点代价除了与源节点代价相邻的节点外,都为∞ </li>
+</ul>
+</li>
+<li> <strong>从所有临时节点中找到一个节点代价最小的临时节点,将 之变成永久节点(当前节点)W   —— 选择</strong></li>
+<li> <strong>对此节点的所有在临时节点集合中的邻节点(V)   —— 更新</strong><ul>
+<li> 如 D(v)&gt;D(w) + c(w,v), 则重新标注此点, (D(W)+C(W,V), W) </li>
+<li> 否则，不重新标注 </li>
+</ul>
+</li>
+<li> <strong>开始一个新的循环  ——  循环</strong></li>
+</ul>
+<p>例子:</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002004447848.png" alt="image-20211002004447848"></p>
+<p>Dijkstra算法的例子</p>
+<p><img src="C:\Users\20662\AppData\Roaming\Typora\typora-user-images\image-20211002004517248.png" alt="image-20211002004517248"></p>
+<h3 id="Dijkstra算法的讨论"><a href="#Dijkstra算法的讨论" class="headerlink" title="Dijkstra算法的讨论"></a>Dijkstra算法的讨论</h3><p>算法复杂度: n节点<br>     每一次迭代: 需要检查所有不在永久集合N中节点<br>     n(n+1)/2 次比较: O(n2 )<br>     有很有效的实现: O(nlogn)<br>可能的震荡：<br>     e.g.,链路代价=链路承载的流量<br>    路径改变次数过多</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002005838258.png" alt="image-20211002005838258"></p>
+<h2 id="路由选择算法-distance-vector-（分布式）"><a href="#路由选择算法-distance-vector-（分布式）" class="headerlink" title="路由选择算法 distance vector （分布式）"></a>路由选择算法 distance vector （分布式）</h2><h3 id="距离矢量路由选择-distance-vector-routing"><a href="#距离矢量路由选择-distance-vector-routing" class="headerlink" title="距离矢量路由选择(distance vector routing)"></a>距离矢量路由选择(distance vector routing)</h3><p>动态路由算法之一</p>
+<p>DV算法历史及应用情况 </p>
+<ul>
+<li>1957 Bellman, 1962 Ford Fulkerson </li>
+<li>用于ARPANET, Internet(RIP) DECnet , Novell, ApplTalk </li>
+</ul>
+<p>距离矢量路由选择的基本思想          <strong>以每个点为中心 更新路由表</strong></p>
+<ul>
+<li>各路由器维护一张路由表,结构如图(其它代价) </li>
+<li>各路由器与相邻路由器交换路由表(待续)    <strong>==邻居与邻居交换代价==</strong></li>
+<li>根据获得的路由信息,更新路由表(待续)       ==<strong>每个节点算出代价值，改变路径，更新路由表</strong>==</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002010557843.png" alt="image-20211002010557843"></p>
+<ul>
+<li>代价及相邻节点间代价的获得 <ul>
+<li><strong>跳数(hops), 延迟(delay),队列长度</strong> </li>
+<li><strong>相邻节点间代价的获得：通过实测</strong> </li>
+</ul>
+</li>
+<li>路由信息的更新 <ul>
+<li><strong>根据实测 得到本节点A到相邻站点的代价（如:延迟）</strong> </li>
+<li><strong>根据各相邻站点声称它们到目标站点B的代价</strong> </li>
+<li><strong>计算出本站点A经过各相邻站点到目标站点B的代价</strong> </li>
+<li><strong>找到一个最小的代价，和相应的下一个节点Z，到达节点 B经过此节点Z，并且代价为A-Z-B的代价</strong> </li>
+<li><strong>其它所有的目标节点同样的计算方法</strong></li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002010843273.png" alt="image-20211002010843273"></p>
+<h3 id="距离矢量路由：例子1"><a href="#距离矢量路由：例子1" class="headerlink" title="距离矢量路由：例子1"></a>距离矢量路由：例子1</h3><ul>
+<li>以当前节点J为例,相邻节点 A,I,H,K </li>
+<li>J测得到A,I,H,K的延迟为 8ms,10ms,12ms,6ms </li>
+<li>通过交换DV, 从A,I,H,K获得到 它们到G的延迟为 18ms,31ms,6ms,31ms </li>
+<li>因此从J经过A,I,H,K到G的延迟 为26ms,41ms,18ms, 37ms </li>
+<li>将到G的路由表项更新为18ms, 下一跳为：H </li>
+<li>其它目标一样，除了本节点J</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012113751.png" alt="image-20211002012113751"></p>
+<h3 id="距离矢量算法"><a href="#距离矢量算法" class="headerlink" title="距离矢量算法"></a>距离矢量算法</h3><p>递归风车</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012204557.png" alt="image-20211002012204557"></p>
+<h3 id="Bellman-Ford例子"><a href="#Bellman-Ford例子" class="headerlink" title="Bellman-Ford例子"></a><a target="_blank" rel="noopener" href="https://www.bilibili.com/video/BV14x411H7x9?from=search&amp;seid=2324818079252436290&amp;spm_id_from=333.337.0.0">Bellman-Ford例子</a></h3><p>SPFA —— 优化后的Bellman-Ford</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012336956.png" alt="image-20211002012336956"></p>
+<ul>
+<li>Dx (y) = 节点x到y代价最小值的估计 <ul>
+<li>x 节点维护距离矢量Dx = [Dx (y): y є N ] </li>
+</ul>
+</li>
+<li>节点x: <ul>
+<li>知道到所有邻居v的代价: c(x,v) </li>
+<li>收到并维护一个它邻居的距离矢量集 </li>
+<li>对于每个邻居, x 维护 Dv = [Dv (y): y є N ]</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012514899.png" alt="image-20211002012514899"></p>
+<h3 id="距离矢量算法特点和问题"><a href="#距离矢量算法特点和问题" class="headerlink" title="距离矢量算法特点和问题"></a>距离矢量算法特点和问题</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012604939.png" alt="image-20211002012604939"></p>
+<ul>
+<li><p>DV的无穷计算问题 </p>
+<ul>
+<li>DV的特点 <ul>
+<li>好消息传的快 坏消息传的慢 </li>
+</ul>
+</li>
+<li>好消息的传播以每一个交换周期前进一个路由器 的速度进行 <ul>
+<li>好消息:某个路由器接入或有更短的路径 </li>
+<li>举例<br><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012712585.png" alt="image-20211002012712585"></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>DV的无穷计算问题 </p>
+<ul>
+<li>坏消息的传播速度非常慢(无穷计算问题)</li>
+<li>例子:<ul>
+<li>第一次交换之后, B从C处获得信息,C可以到达A(C-A, 要经过B本身),但是路径是2,因此B变成3,从C处走 </li>
+<li>第二次交换,C从B处获得消息, B可以到达A,路径为3, 因此,C到A从B走,代价为3 </li>
+<li>无限此之后, 到A的距离变成INF,不可达</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002012915419.png" alt="image-20211002012915419"></p>
+<h3 id="水平分裂-split-horizon-算法"><a href="#水平分裂-split-horizon-算法" class="headerlink" title="水平分裂(split horizon)算法"></a>水平分裂(split horizon)算法</h3><ul>
+<li>一种对无穷计算问题的解决办法  —— 结局坏消息传的慢的问题<ul>
+<li><strong>C知道要经过B才能到达A，所以C向B报告它到A的距离 为INF；C 告诉D它到A的真实距离</strong> </li>
+<li>D告诉E,它到A的距离,但D告诉C它通向A的距离为INF </li>
+<li>第一次交换: B通过测试发现到A的路径为INF,而C也告 诉B到A的距离为INF,因此,B到A的距离为INF </li>
+<li>第二次交换: C从B和D那里获知,到A的距离为INF,因此 将它到A的距离为INF </li>
+<li>……坏消息以一次交换一个节点的速度传播</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002112809523.png" alt="image-20211002112809523"></p>
+<p>告诉B 无穷，D真实值</p>
+<h3 id="距离矢量算法例子"><a href="#距离矢量算法例子" class="headerlink" title="距离矢量算法例子"></a>距离矢量算法例子</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002113230006.png" alt="image-20211002113230006"></p>
+<h2 id="LS-和-DV-算法的比较"><a href="#LS-和-DV-算法的比较" class="headerlink" title="LS 和 DV 算法的比较"></a>LS 和 DV 算法的比较</h2><p><strong>消息复杂度（DV胜出）</strong>  O(NE)</p>
+<p><strong>收敛时间（LS胜出）</strong>       O(NlogN)</p>
+<p><strong>健壮性（LS胜出）</strong>    节点之间影响较小</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002113320727.png" alt="image-20211002113320727"></p>
+<h1 id="5-3-因特网中自治系统内部的路由选择-实际的、内部的"><a href="#5-3-因特网中自治系统内部的路由选择-实际的、内部的" class="headerlink" title="5.3 因特网中自治系统内部的路由选择 (实际的、内部的)"></a>5.3 因特网中自治系统内部的路由选择 (实际的、内部的)</h1><h2 id="RIP-Routing-Information-Protocol"><a href="#RIP-Routing-Information-Protocol" class="headerlink" title="RIP ( Routing Information Protocol)"></a>RIP ( Routing Information Protocol)</h2><p>在 1982年发布的BSD-UNIX 中实现 </p>
+<ul>
+<li><strong>==Distance vector 算法==</strong> </li>
+<li>距离矢量:每条链路cost=1，# of hops (max = 15 hops) 跳数 </li>
+<li>DV每隔30秒和邻居交换DV，通告 </li>
+<li>每个通告包括：最多25个目标子网</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002144643968.png" alt="image-20211002144643968"></p>
+<h3 id="RIP-通告（advertisements）"><a href="#RIP-通告（advertisements）" class="headerlink" title="RIP 通告（advertisements）"></a>RIP 通告（advertisements）</h3><ul>
+<li>DV: 在邻居之间每30秒交换通告报文 <ul>
+<li>定期，而且在改变路由的时候发送通告报文 </li>
+<li>在对方的请求下可以发送通告报文 </li>
+</ul>
+</li>
+<li>每一个通告: 至多AS内部的25个目标网络的 DV <ul>
+<li>目标网络+跳数<br>一次公告最多25个 子网 最大跳数为16 </li>
+</ul>
+</li>
+</ul>
+<h3 id="RIP-例子"><a href="#RIP-例子" class="headerlink" title="RIP: 例子"></a>RIP: 例子</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002161034218.png" alt="image-20211002161034218"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002161049443.png" alt="image-20211002161049443"></p>
+<h3 id="RIP-链路失效和恢复"><a href="#RIP-链路失效和恢复" class="headerlink" title="RIP: 链路失效和恢复"></a>RIP: 链路失效和恢复</h3><p>如果180秒没有收到通告信息—&gt;邻居或者链路失效 </p>
+<ul>
+<li>发现经过这个邻居的路由已失效 </li>
+<li>新的通告报文会传递给邻居 </li>
+<li>邻居因此发出新的通告 (如果路由变化的话) </li>
+<li>链路失效快速(?)地在整网中传输 </li>
+<li>使用毒性逆转（poison reverse）阻止ping-pong回路 ( 不可达的距离：跳数无限 = 16 段)</li>
+</ul>
+<h3 id="RIP-进程处理"><a href="#RIP-进程处理" class="headerlink" title="RIP 进程处理"></a>RIP 进程处理</h3><ul>
+<li>RIP 以应用进程的方式实现：route-d (daemon) </li>
+<li>通告报文通过UDP报文传送，周期性重复 </li>
+<li>网络层的协议使用了传输层的服务，以应用层实体的 方式实现</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002161616471.png" alt="image-20211002161616471"></p>
+<h2 id="OSPF-Open-Shortest-Path-First"><a href="#OSPF-Open-Shortest-Path-First" class="headerlink" title="OSPF (Open Shortest Path First)"></a>OSPF (Open Shortest Path First)</h2><ul>
+<li>“open”: 标准可公开获得 </li>
+<li>==<strong>使用LS算法</strong>== <ul>
+<li>LS 分组在网络中（一个AS内部）分发 </li>
+<li>全局网络拓扑、代价在每一个节点中都保持 </li>
+<li>路由计算采用Dijkstra算法 </li>
+</ul>
+</li>
+<li>OSPF通告信息中携带：每一个邻居路由器一个表项 </li>
+<li>通告信息会传遍AS全部（通过泛洪） <ul>
+<li>在IP数据报上直接传送OSPF报文 (而不是通过UDP和TCP) </li>
+</ul>
+</li>
+<li>IS-IS路由协议：几乎和OSPF一样</li>
+</ul>
+<h3 id="OSPF-“高级”-特性-在RIP中的没有的"><a href="#OSPF-“高级”-特性-在RIP中的没有的" class="headerlink" title="OSPF “高级” 特性(在RIP中的没有的)"></a>OSPF “高级” 特性(在RIP中的没有的)</h3><ul>
+<li>安全:所有的OSPF报文都是经过认证的(防止恶意的攻击)</li>
+<li>允许有多个代价相同的路径存在(在RIP协议中只有一个)</li>
+<li>对于每一个链路，对于不同的TOS有多重代价矩阵<ul>
+<li>例如:卫星链路代价对于尽力而为的服务代价设置比较低，对实<br>时服务代价设置的比较高</li>
+<li>支持按照不同的代价计算最优路径，如:按照时间和延迟分别计<br>算最优路径</li>
+</ul>
+</li>
+<li>对单播和多播的集成支持:<ul>
+<li>Multicast OSPF(MOSPF)使用相同的拓扑数据库，就像在OSPF中一样</li>
+</ul>
+</li>
+<li>在大型网络中支持层次性OSPF</li>
+</ul>
+<h3 id="层次化的OSPF路由"><a href="#层次化的OSPF路由" class="headerlink" title="层次化的OSPF路由"></a>层次化的OSPF路由</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002170733474.png" alt="image-20211002170733474"></p>
+<h3 id="层次性的OSPF路由"><a href="#层次性的OSPF路由" class="headerlink" title="层次性的OSPF路由"></a>层次性的OSPF路由</h3><ul>
+<li>2个级别的层次性: 本地, 骨干 <ul>
+<li>链路状态通告仅仅在本地区域Area范围内进行 </li>
+<li>每一个节点拥有本地区域的拓扑信息； </li>
+</ul>
+</li>
+<li>关于其他区域，知道去它的方向，通过区域边界路 由器（最短路径） </li>
+<li>区域边界路由器: “汇总（聚集）”到自己区域 内网络的距离, 向其它区域边界路由器通告. </li>
+<li>骨干路由器: 仅仅在骨干区域内，运行OSPF路由 </li>
+<li>边界路由器: 连接其它的AS’s.</li>
+</ul>
+<h1 id="5-4-ISP之间的路由选择-BGP"><a href="#5-4-ISP之间的路由选择-BGP" class="headerlink" title="5.4 ISP之间的路由选择: BGP"></a>5.4 ISP之间的路由选择: BGP</h1><h2 id="层次路由"><a href="#层次路由" class="headerlink" title="层次路由"></a>层次路由</h2><p>一个平面的路由 </p>
+<ul>
+<li>一个网络中的所有路 由器的地位一样 </li>
+<li>通过LS, DV，或者其 他路由算法，所有路 由器都要知道其他所 有路由器（子网）如 何走 </li>
+<li>所有路由器在一个平 面</li>
+</ul>
+<p>平面路由的问题 </p>
+<ul>
+<li><strong>规模巨大的网络中，路由信息的存储、传输和计算代价 巨大</strong><ul>
+<li>DV: 距离矢量很大，且不能够 收敛 </li>
+<li>LS：几百万个节点的LS分组 的泛洪传输，存储以及最短路 径算法的计算 </li>
+</ul>
+</li>
+<li><strong>管理问题：</strong>  （一个平面搞不定）<ul>
+<li>不同的网络所有者希望按照自 己的方式管理网络 </li>
+<li>希望对外隐藏自己网络的细节 </li>
+<li>当然，还希望和其它网络互联</li>
+</ul>
+</li>
+</ul>
+<h3 id="层次路由的实现"><a href="#层次路由的实现" class="headerlink" title="层次路由的实现"></a>层次路由的实现</h3><ul>
+<li><p>层次路由：将互联网 分成一个个AS(路由器 区域) </p>
+<ul>
+<li><strong>某个区域内的路由器集 合，自治系统 “autonomous systems” (AS)</strong> </li>
+<li>一个AS用AS Number （ASN)唯一标示 </li>
+<li>一个ISP可能包括1个 或者多个AS</li>
+</ul>
+</li>
+<li><p>路由变成了: 2个层次路由 </p>
+<ul>
+<li><strong>AS内部路由：在同一个AS 内路由器运行相同的路由协议</strong><ul>
+<li>“intra-AS” routing protocol：内部网关协议 </li>
+<li>不同的AS可能运行着不同的 内部网关协议 </li>
+<li>能够解决规模和管理问题 </li>
+<li>如：RIP,OSPF,IGRP </li>
+<li>网关路由器：AS边缘路由器 ，可以连接到其他AS </li>
+</ul>
+</li>
+<li><strong>AS间运行AS间路由协议</strong> <ul>
+<li><strong>“inter-AS” routing protocol：外部网关协议</strong> </li>
+<li><strong>解决AS之间的路由问题，完成AS之间的互联互通</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="层次路由的优点"><a href="#层次路由的优点" class="headerlink" title="层次路由的优点"></a>层次路由的优点</h3><ul>
+<li>解决了<strong>规模问题</strong><ul>
+<li><strong>内部网关协议解决:AS内部数量有限的路由器相互到达的间题，AS内部规模可控</strong><ul>
+<li>如AS节点太多，可分割AS，使得AS内部的节点数量有限</li>
+</ul>
+</li>
+<li>AS之间的路由的规模问题<ul>
+<li>增加一个As，对于AS之间的路由从总体上来说，只是增加了一个节点=子网(每个AS可以用一个点来表示)</li>
+<li>对于其他AS来说只是增加了一个表项，就是这个新增的AS如何走的问题</li>
+<li><strong>扩展性强:规模增大，性能不会减得太多</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+<li>解决了<strong>管理问题</strong> <ul>
+<li><strong>各个AS可以运行不 同的内部网关协议</strong> </li>
+<li><strong>可以使自己网络的细节不向外透露</strong></li>
+</ul>
+</li>
+</ul>
+<h2 id="互联网AS间路由：BGP-边界网关协议"><a href="#互联网AS间路由：BGP-边界网关协议" class="headerlink" title="互联网AS间路由：BGP 边界网关协议"></a>互联网AS间路由：BGP 边界网关协议</h2><ul>
+<li>BGP (Border Gateway Protocol):自治区域间路由协议”事实上的”标准<br>o <strong>“将互联网各个AS粘在一起的胶水”</strong></li>
+<li>BGP提供给每个AS以以下方法:<br>o <strong>eBGP:从相邻的ASes那里获得子网可达信息</strong> —— 从外部获取<br>o <strong>iBGP:将获得的子网可达信息传遍到AS内部的所有路由器</strong>  —— 向内部传<br>o <strong>根据子网可达信息和策略来决定到达子网的”好”路径</strong></li>
+<li>允许子网向互联网其他网络通告”我在这里”</li>
+<li>基于距离矢量算法(路径矢量)<br>o不仅仅是距离矢量，还包括到达各个目标网络的详细路径（AS<br>序号的列表）能够避免简单DV算法的路由环路问题</li>
+</ul>
+<h3 id="eBGP-iBGP-连接"><a href="#eBGP-iBGP-连接" class="headerlink" title="eBGP, iBGP 连接"></a>eBGP, iBGP 连接</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002172739773.png" alt="image-20211002172739773"></p>
+<h1 id="5-5-SDN控制平面"><a href="#5-5-SDN控制平面" class="headerlink" title="5.5 SDN控制平面"></a>5.5 SDN控制平面</h1><h2 id="Software-defined-networking-SDN"><a href="#Software-defined-networking-SDN" class="headerlink" title="Software defined networking (SDN)"></a>Software defined networking (SDN)</h2><ul>
+<li> 互联网络网络层：历史上都是通过分布式、每个 路由器的实现 <ul>
+<li> 单个路由器包含了：交换设备硬件、私有路由器OS（ 如：思科IOS）和其上运行的互联网标准协议(IP, RIP, IS-IS, OSPF, BGP)的私有实现 </li>
+<li> 需要不同的中间盒来实现不同网络层功能：防火墙， 负载均衡设备和NAT…</li>
+</ul>
+</li>
+</ul>
+<h2 id="SDN-面临的挑战"><a href="#SDN-面临的挑战" class="headerlink" title="SDN: 面临的挑战"></a>SDN: 面临的挑战</h2><ul>
+<li>强化控制平面：可信、可靠、性能可扩展性、 安全的分布式系统 <ul>
+<li>对于失效的鲁棒性： 利用为控制平面可靠分布式系 统的强大理论 </li>
+<li>可信任，安全：从开始就进行铸造 </li>
+</ul>
+</li>
+<li>网络、协议满足特殊任务的需求 <ul>
+<li>e.g., 实时性，超高可靠性、超高安全性 </li>
+</ul>
+</li>
+<li>互联网络范围内的扩展性 <ul>
+<li>而不是仅仅在一个AS的内部部署，全网部署</li>
+</ul>
+</li>
+</ul>
+<h1 id="5-6-ICMP-因特网控制报-文协议"><a href="#5-6-ICMP-因特网控制报-文协议" class="headerlink" title="5.6 ICMP: 因特网控制报 文协议"></a>5.6 ICMP: 因特网控制报 文协议</h1><h2 id="ICMP-Internet-Control-Message-Protocol"><a href="#ICMP-Internet-Control-Message-Protocol" class="headerlink" title="ICMP: Internet Control Message Protocol"></a>ICMP: Internet Control Message Protocol</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173250939.png" alt="image-20211002173250939"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173303211.png" alt="image-20211002173303211"></p>
+<h1 id="5-7-网络管理和SNMP-略）"><a href="#5-7-网络管理和SNMP-略）" class="headerlink" title="5.7 网络管理和SNMP(略）"></a>5.7 网络管理和SNMP(略）</h1><h2 id="什么是网络管理"><a href="#什么是网络管理" class="headerlink" title="什么是网络管理?"></a>什么是网络管理?</h2><p>自治系统（autonomous systems, aka “network”): 1000多个 相互的软件和硬件部件 </p>
+<p>其他复杂系统也需要被监视和控制:  喷气飞机  核电站  其他例子？</p>
+<blockquote>
+<p>“网络管理”包括了硬件、软件和人类元素的设置，综合和协 调，以便监测，测试，轮询，配置，分析，评价和控制网络 和网元资源，用合理的成本满足实时性，运行能和服务质量 的要求；</p>
+</blockquote>
+<p>性能管理:<br>О性能(利用率、吞吐量)量化、测量、报告、分析和控制不同网络部件的性能<br>o 涉及到的部件:单独部件（网卡，协议实体），端到端的路径故障管理:记录、检测和响应故障;<br>○ 性能管理为长期监测设备性能</p>
+<p>故障管理:突然发生的强度大的性能降低，强调对故障的响应配置管理:跟踪设备的配置，管理设备配置信息</p>
+<p>账户管理:定义、记录和控制用户和设备访问网络资源<br>o限额使用、给予使用的收费，以及分配资源访问权限</p>
+<p>安全管理:定义安全策略，控制对网络资源的使用</p>
+<h2 id="网络管理架构"><a href="#网络管理架构" class="headerlink" title="网络管理架构"></a>网络管理架构</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173448692.png" alt="image-20211002173448692"></p>
+<h2 id="SNMP协议"><a href="#SNMP协议" class="headerlink" title="SNMP协议"></a>SNMP协议</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173459816.png" alt="image-20211002173459816"></p>
+<h3 id="SNMP-协议-报文类型"><a href="#SNMP-协议-报文类型" class="headerlink" title="SNMP 协议: 报文类型"></a>SNMP 协议: 报文类型</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173514916.png" alt="image-20211002173514916"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211002173523394.png" alt="image-20211002173523394"></p>
+<h1 id="第五章：总结"><a href="#第五章：总结" class="headerlink" title="第五章：总结"></a>第五章：总结</h1><ul>
+<li>网络层控制平面的方法<br>o<strong>==每个路由器控制（传统方法)==</strong><br>o<strong>==逻辑上集中的控制(software defined networking)==</strong>   SDN</li>
+<li>传统路由选择算法<br>o<strong>==在互联网上的实现:RIP，OSPF，BGP==</strong></li>
+<li>SDN控制器<br>o <strong>==实际中的实现:ODL,ONOS==</strong></li>
+<li>Internet Control Message Protocol</li>
+<li>网络管理和SNMP协议</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Network/" rel="tag"># Network</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%9B%9B%E7%AB%A0/" rel="prev" title="计算机网络第四章 网络层:数据平面">
+      <i class="fa fa-chevron-left"></i> 计算机网络第四章 网络层:数据平面
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%B8%80%E7%AB%A0/" rel="next" title="计算机网络第一章 网络概念">
+      计算机网络第一章 网络概念 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AC%AC5%E7%AB%A0%EF%BC%9A%E7%BD%91%E7%BB%9C%E5%B1%82%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">1.</span> <span class="nav-text">第5章：网络层控制平面</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-1-%E5%AF%BC%E8%AE%BA"><span class="nav-number">2.</span> <span class="nav-text">5.1 导论</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%B1%82%E5%8A%9F%E8%83%BD"><span class="nav-number">2.1.</span> <span class="nav-text">网络层功能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%EF%BC%9A%E6%AF%8F-%E8%B7%AF%E7%94%B1%E5%99%A8-Per-router-%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">2.1.1.</span> <span class="nav-text">传统方式：每-路由器(Per-router)控制平面</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN%E6%96%B9%E5%BC%8F%EF%BC%9A%E9%80%BB%E8%BE%91%E4%B8%8A%E9%9B%86%E4%B8%AD%E7%9A%84%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">2.1.2.</span> <span class="nav-text">SDN方式：逻辑上集中的控制平面</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-2-%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E7%AE%97%E6%B3%95"><span class="nav-number">3.</span> <span class="nav-text">5.2 路由选择算法</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1-route-%E7%9A%84%E6%A6%82%E5%BF%B5"><span class="nav-number">3.1.</span> <span class="nav-text">路由(route)的概念</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E7%9A%84%E5%9B%BE%E6%8A%BD%E8%B1%A1"><span class="nav-number">3.1.1.</span> <span class="nav-text">网络的图抽象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%BE%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BE%B9%E5%92%8C%E8%B7%AF%E5%BE%84%E7%9A%84%E4%BB%A3%E4%BB%B7"><span class="nav-number">3.1.2.</span> <span class="nav-text">图抽象：边和路径的代价</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%9C%80%E4%BC%98%E5%8C%96%E5%8E%9F%E5%88%99-optimality-principle"><span class="nav-number">3.1.3.</span> <span class="nav-text">最优化原则(optimality principle)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E7%9A%84%E5%8E%9F%E5%88%99"><span class="nav-number">3.2.</span> <span class="nav-text">路由的原则</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E7%AE%97%E6%B3%95%E5%88%86%E7%B1%BB"><span class="nav-number">3.2.1.</span> <span class="nav-text">路由算法分类</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E7%AE%97%E6%B3%95-link-state-%EF%BC%88%E5%85%A8%E5%B1%80%EF%BC%89"><span class="nav-number">3.3.</span> <span class="nav-text">路由选择算法 link state （全局）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#LS%E8%B7%AF%E7%94%B1%E7%9A%84%E5%B7%A5%E4%BD%9C%E8%BF%87%E7%A8%8B"><span class="nav-number">3.3.1.</span> <span class="nav-text">LS路由的工作过程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%93%BE%E8%B7%AF%E7%8A%B6%E6%80%81%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9-link-state-routing"><span class="nav-number">3.3.2.</span> <span class="nav-text">链路状态路由选择(link state routing)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#LS%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E7%AE%97%E6%B3%95%E7%9A%84%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86"><span class="nav-number">3.3.3.</span> <span class="nav-text">LS路由选择算法的工作原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Dijkstra%E7%AE%97%E6%B3%95%E7%9A%84%E8%AE%A8%E8%AE%BA"><span class="nav-number">3.3.4.</span> <span class="nav-text">Dijkstra算法的讨论</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E7%AE%97%E6%B3%95-distance-vector-%EF%BC%88%E5%88%86%E5%B8%83%E5%BC%8F%EF%BC%89"><span class="nav-number">3.4.</span> <span class="nav-text">路由选择算法 distance vector （分布式）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%9D%E7%A6%BB%E7%9F%A2%E9%87%8F%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9-distance-vector-routing"><span class="nav-number">3.4.1.</span> <span class="nav-text">距离矢量路由选择(distance vector routing)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%9D%E7%A6%BB%E7%9F%A2%E9%87%8F%E8%B7%AF%E7%94%B1%EF%BC%9A%E4%BE%8B%E5%AD%901"><span class="nav-number">3.4.2.</span> <span class="nav-text">距离矢量路由：例子1</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%9D%E7%A6%BB%E7%9F%A2%E9%87%8F%E7%AE%97%E6%B3%95"><span class="nav-number">3.4.3.</span> <span class="nav-text">距离矢量算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Bellman-Ford%E4%BE%8B%E5%AD%90"><span class="nav-number">3.4.4.</span> <span class="nav-text">Bellman-Ford例子</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%9D%E7%A6%BB%E7%9F%A2%E9%87%8F%E7%AE%97%E6%B3%95%E7%89%B9%E7%82%B9%E5%92%8C%E9%97%AE%E9%A2%98"><span class="nav-number">3.4.5.</span> <span class="nav-text">距离矢量算法特点和问题</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B0%B4%E5%B9%B3%E5%88%86%E8%A3%82-split-horizon-%E7%AE%97%E6%B3%95"><span class="nav-number">3.4.6.</span> <span class="nav-text">水平分裂(split horizon)算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B7%9D%E7%A6%BB%E7%9F%A2%E9%87%8F%E7%AE%97%E6%B3%95%E4%BE%8B%E5%AD%90"><span class="nav-number">3.4.7.</span> <span class="nav-text">距离矢量算法例子</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#LS-%E5%92%8C-DV-%E7%AE%97%E6%B3%95%E7%9A%84%E6%AF%94%E8%BE%83"><span class="nav-number">3.5.</span> <span class="nav-text">LS 和 DV 算法的比较</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-3-%E5%9B%A0%E7%89%B9%E7%BD%91%E4%B8%AD%E8%87%AA%E6%B2%BB%E7%B3%BB%E7%BB%9F%E5%86%85%E9%83%A8%E7%9A%84%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9-%E5%AE%9E%E9%99%85%E7%9A%84%E3%80%81%E5%86%85%E9%83%A8%E7%9A%84"><span class="nav-number">4.</span> <span class="nav-text">5.3 因特网中自治系统内部的路由选择 (实际的、内部的)</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#RIP-Routing-Information-Protocol"><span class="nav-number">4.1.</span> <span class="nav-text">RIP ( Routing Information Protocol)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#RIP-%E9%80%9A%E5%91%8A%EF%BC%88advertisements%EF%BC%89"><span class="nav-number">4.1.1.</span> <span class="nav-text">RIP 通告（advertisements）</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RIP-%E4%BE%8B%E5%AD%90"><span class="nav-number">4.1.2.</span> <span class="nav-text">RIP: 例子</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RIP-%E9%93%BE%E8%B7%AF%E5%A4%B1%E6%95%88%E5%92%8C%E6%81%A2%E5%A4%8D"><span class="nav-number">4.1.3.</span> <span class="nav-text">RIP: 链路失效和恢复</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#RIP-%E8%BF%9B%E7%A8%8B%E5%A4%84%E7%90%86"><span class="nav-number">4.1.4.</span> <span class="nav-text">RIP 进程处理</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OSPF-Open-Shortest-Path-First"><span class="nav-number">4.2.</span> <span class="nav-text">OSPF (Open Shortest Path First)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#OSPF-%E2%80%9C%E9%AB%98%E7%BA%A7%E2%80%9D-%E7%89%B9%E6%80%A7-%E5%9C%A8RIP%E4%B8%AD%E7%9A%84%E6%B2%A1%E6%9C%89%E7%9A%84"><span class="nav-number">4.2.1.</span> <span class="nav-text">OSPF “高级” 特性(在RIP中的没有的)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%82%E6%AC%A1%E5%8C%96%E7%9A%84OSPF%E8%B7%AF%E7%94%B1"><span class="nav-number">4.2.2.</span> <span class="nav-text">层次化的OSPF路由</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%82%E6%AC%A1%E6%80%A7%E7%9A%84OSPF%E8%B7%AF%E7%94%B1"><span class="nav-number">4.2.3.</span> <span class="nav-text">层次性的OSPF路由</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-4-ISP%E4%B9%8B%E9%97%B4%E7%9A%84%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9-BGP"><span class="nav-number">5.</span> <span class="nav-text">5.4 ISP之间的路由选择: BGP</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B1%82%E6%AC%A1%E8%B7%AF%E7%94%B1"><span class="nav-number">5.1.</span> <span class="nav-text">层次路由</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%82%E6%AC%A1%E8%B7%AF%E7%94%B1%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="nav-number">5.1.1.</span> <span class="nav-text">层次路由的实现</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%82%E6%AC%A1%E8%B7%AF%E7%94%B1%E7%9A%84%E4%BC%98%E7%82%B9"><span class="nav-number">5.1.2.</span> <span class="nav-text">层次路由的优点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%92%E8%81%94%E7%BD%91AS%E9%97%B4%E8%B7%AF%E7%94%B1%EF%BC%9ABGP-%E8%BE%B9%E7%95%8C%E7%BD%91%E5%85%B3%E5%8D%8F%E8%AE%AE"><span class="nav-number">5.2.</span> <span class="nav-text">互联网AS间路由：BGP 边界网关协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#eBGP-iBGP-%E8%BF%9E%E6%8E%A5"><span class="nav-number">5.2.1.</span> <span class="nav-text">eBGP, iBGP 连接</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-5-SDN%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">6.</span> <span class="nav-text">5.5 SDN控制平面</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Software-defined-networking-SDN"><span class="nav-number">6.1.</span> <span class="nav-text">Software defined networking (SDN)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SDN-%E9%9D%A2%E4%B8%B4%E7%9A%84%E6%8C%91%E6%88%98"><span class="nav-number">6.2.</span> <span class="nav-text">SDN: 面临的挑战</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-6-ICMP-%E5%9B%A0%E7%89%B9%E7%BD%91%E6%8E%A7%E5%88%B6%E6%8A%A5-%E6%96%87%E5%8D%8F%E8%AE%AE"><span class="nav-number">7.</span> <span class="nav-text">5.6 ICMP: 因特网控制报 文协议</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#ICMP-Internet-Control-Message-Protocol"><span class="nav-number">7.1.</span> <span class="nav-text">ICMP: Internet Control Message Protocol</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#5-7-%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86%E5%92%8CSNMP-%E7%95%A5%EF%BC%89"><span class="nav-number">8.</span> <span class="nav-text">5.7 网络管理和SNMP(略）</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86"><span class="nav-number">8.1.</span> <span class="nav-text">什么是网络管理?</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E7%AE%A1%E7%90%86%E6%9E%B6%E6%9E%84"><span class="nav-number">8.2.</span> <span class="nav-text">网络管理架构</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SNMP%E5%8D%8F%E8%AE%AE"><span class="nav-number">8.3.</span> <span class="nav-text">SNMP协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SNMP-%E5%8D%8F%E8%AE%AE-%E6%8A%A5%E6%96%87%E7%B1%BB%E5%9E%8B"><span class="nav-number">8.3.1.</span> <span class="nav-text">SNMP 协议: 报文类型</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AC%AC%E4%BA%94%E7%AB%A0%EF%BC%9A%E6%80%BB%E7%BB%93"><span class="nav-number">9.</span> <span class="nav-text">第五章：总结</span></a></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Baozi</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Baozi</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">140k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:07</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>

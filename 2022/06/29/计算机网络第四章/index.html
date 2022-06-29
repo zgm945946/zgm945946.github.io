@@ -1,0 +1,1174 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 6.2.0">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/all.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"example.com","root":"/","scheme":"Gemini","version":"7.8.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":true,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":false,"trigger":"auto","top_n_per_article":1,"unescape":false,"preload":false},"motion":{"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}}};
+  </script>
+
+  <meta name="description" content="第 4 章 网络层：数据平面本章目标: 理解网络服务的基本原理，聚焦于其数据平面     网络服务模型     转发和路由     路由器工作原理     通用转发 互联网中网络层协议的实例和实现 [TOC] 4.1 导论 数据平面 控制平面 网络层服务 在发送主机和接收主机对之间 传送段（segment） 在发送端将段封装到数据报中 在接收端，将段上交给传输层 实体 网络">
+<meta property="og:type" content="article">
+<meta property="og:title" content="计算机网络第四章 网络层:数据平面">
+<meta property="og:url" content="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%9B%9B%E7%AB%A0/index.html">
+<meta property="og:site_name" content="1205">
+<meta property="og:description" content="第 4 章 网络层：数据平面本章目标: 理解网络服务的基本原理，聚焦于其数据平面     网络服务模型     转发和路由     路由器工作原理     通用转发 互联网中网络层协议的实例和实现 [TOC] 4.1 导论 数据平面 控制平面 网络层服务 在发送主机和接收主机对之间 传送段（segment） 在发送端将段封装到数据报中 在接收端，将段上交给传输层 实体 网络">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001100723126.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001102609192.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001102633237.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001102716772.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001103624022.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001103919273.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104327835.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104653702.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104817961.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104907438.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104959142.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105151671.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105403564.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105440439.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105910410.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001110210112.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111117490.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111153165.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111457486.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111652067.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001133625648.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001133700562.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001135955479.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001142106457.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001142823822.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001142922347.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001143934822.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001144206732.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001144822831.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001145225819.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001145630149.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001150738412.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001150949929.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152133538.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152533723.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152723380.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152732177.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153026504.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153350960.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153500951.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153521591.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001154409133.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001155320593.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001155703049.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160320932.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160555463.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160622576.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160657605.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161538845.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161610989.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161724509.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161743836.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161759335.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161825639.png">
+<meta property="og:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161835426.png">
+<meta property="article:published_time" content="2022-06-29T11:02:36.207Z">
+<meta property="article:modified_time" content="2022-06-29T11:01:02.239Z">
+<meta property="article:author" content="Baozi">
+<meta property="article:tag" content="Network">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001100723126.png">
+
+<link rel="canonical" href="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%9B%9B%E7%AB%A0/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true,
+    lang   : 'zh-CN'
+  };
+</script>
+
+  <title>计算机网络第四章 网络层:数据平面 | 1205</title>
+  
+
+
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+<link rel="alternate" href="/atom.xml" title="1205" type="application/atom+xml">
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container use-motion">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <h1 class="site-title">1205</h1>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+    </div>
+  </div>
+</div>
+
+
+
+
+<nav class="site-nav">
+  <ul id="menu" class="main-menu menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a>
+
+  </li>
+  </ul>
+</nav>
+
+
+
+
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content post posts-expand">
+            
+
+    
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block" lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E5%9B%9B%E7%AB%A0/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="Baozi">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="1205">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          计算机网络第四章 网络层:数据平面
+        </h1>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-calendar"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+              
+
+              <time title="创建时间：2022-06-29 19:02:36 / 修改时间：19:01:02" itemprop="dateCreated datePublished" datetime="2022-06-29T19:02:36+08:00">2022-06-29</time>
+            </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="far fa-folder"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/" itemprop="url" rel="index"><span itemprop="name">计算机网络</span></a>
+                </span>
+            </span>
+
+          
+            <span class="post-meta-item" title="阅读次数" id="busuanzi_container_page_pv" style="display: none;">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span id="busuanzi_value_page_pv"></span>
+            </span><br>
+            <span class="post-meta-item" title="本文字数">
+              <span class="post-meta-item-icon">
+                <i class="far fa-file-word"></i>
+              </span>
+                <span class="post-meta-item-text">本文字数：</span>
+              <span>10k</span>
+            </span>
+            <span class="post-meta-item" title="阅读时长">
+              <span class="post-meta-item-icon">
+                <i class="far fa-clock"></i>
+              </span>
+                <span class="post-meta-item-text">阅读时长 &asymp;</span>
+              <span>9 分钟</span>
+            </span>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <h1 id="第-4-章-网络层：数据平面"><a href="#第-4-章-网络层：数据平面" class="headerlink" title="第 4 章 网络层：数据平面"></a>第 4 章 网络层：数据平面</h1><p>本章目标:<br> 理解网络服务的基本原理，聚焦于其<strong>数据平面</strong><br>     <strong>网络服务模型</strong><br>     <strong>转发和路由</strong><br>     <strong>路由器工作原理</strong><br>     <strong>通用转发</strong><br> 互联网中网络层协议的实例和实现</p>
+<p>[TOC]</p>
+<h1 id="4-1-导论"><a href="#4-1-导论" class="headerlink" title="4.1 导论"></a>4.1 导论</h1><p> 数据平面<br> 控制平面</p>
+<h2 id="网络层服务"><a href="#网络层服务" class="headerlink" title="网络层服务"></a>网络层服务</h2><p> 在发送主机和接收主机对之间 传送段<strong>（segment）</strong><br> 在发送端将段封装到数据报中<br> 在接收端，将段上交给传输层 实体<br> 网络层协议存在于每一个主机 和路由器<br> 路由器检查每一个经过它的IP 数据报的头部</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001100723126.png" alt="image-20211001100723126" style="zoom:80%;" /></p>
+<h2 id="网络层的关键功能"><a href="#网络层的关键功能" class="headerlink" title="网络层的关键功能"></a>网络层的关键功能</h2><p>网络层功能：<br> 转发: 将分组从路由器的输入接口转发到合适的输出接口<br> 路由: 使用路由算法来决定分组从发送主机到目标接收主机的路径<br>    路由选择算法<br>    路由选择协议</p>
+<p><strong>旅行的类比：</strong> </p>
+<ul>
+<li><strong>转发: 通过单个路口的过程</strong>  —— 数据平面</li>
+<li><strong>路由: 从源到目的的路由路径规划过程</strong> —— 控制平面</li>
+</ul>
+<h2 id="网络层：数据平面、控制平面"><a href="#网络层：数据平面、控制平面" class="headerlink" title="网络层：数据平面、控制平面"></a>网络层：数据平面、控制平面</h2><ul>
+<li><p>数据平面 </p>
+<ul>
+<li>本地，每个路由器功能 </li>
+<li><strong>决定从路由器输入端口到达的分组如何转发到输出端口</strong> </li>
+<li>转发功能： <ul>
+<li>传统方式：基于目标 地址+转发表 </li>
+<li><strong>SDN方式：基于多个字段+流表</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>控制平面 </p>
+<ul>
+<li>网络范围内的逻辑 </li>
+<li><strong>决定数据报如何在路由器之间 路由，决定数据报从源到目标主机之间的端到端路径</strong> </li>
+<li>2个控制平面方法: <ul>
+<li><strong>==传统的路由算法: 在路由器中被实现  —— 功能单一：根据目标的IP地址进行转发==</strong></li>
+<li><strong>==software-defined networking (SDN): 在远程的服务器中实现==</strong><br>软件定义网   ——   匹配很多字段，功能更多：泛洪、转发、修改字段</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="传统方式：每-路由器-Per-router-控制平面"><a href="#传统方式：每-路由器-Per-router-控制平面" class="headerlink" title="传统方式：每-路由器(Per-router)控制平面"></a>传统方式：每-路由器(Per-router)控制平面</h3><p><strong>==在每一个路由器中的单独路由器算法元件，在控制平面进行交互==</strong><br><strong>紧耦合，难以修改</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001102609192.png" alt="image-20211001102609192"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001102633237.png" alt="image-20211001102633237"></p>
+<h3 id="SDN方式：逻辑集中的控制平面"><a href="#SDN方式：逻辑集中的控制平面" class="headerlink" title="SDN方式：逻辑集中的控制平面"></a>SDN方式：逻辑集中的控制平面</h3><p><u><strong>==一个不同的（通常是远程的）控制器与本地控制代理（CAs） 交互==</strong></u><br>网络操作系统运行在集中的控制器上</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001102716772.png" alt="image-20211001102716772"></p>
+<h2 id="网络服务模型"><a href="#网络服务模型" class="headerlink" title="网络服务模型"></a>网络服务模型</h2><p>Q: 从发送方主机到接收方主机传输数据报的“通道” ，网络提供什么样的服务模型？</p>
+<ul>
+<li>对于单个数据报的服务: <ul>
+<li>可靠传送 </li>
+<li>延迟保证，如：少于 40ms的延迟</li>
+</ul>
+</li>
+<li>对于数据报流的服务: <ul>
+<li>保序数据报传送 </li>
+<li>保证流的最小带宽 </li>
+<li>分组之间的延迟差</li>
+</ul>
+</li>
+</ul>
+<h3 id="连接建立"><a href="#连接建立" class="headerlink" title="连接建立"></a>连接建立</h3><p> 在某些网络架构中是第三个重要的功能<br>     ATM, frame relay, X.25 </p>
+<p> 在分组传输之前，在两个主机之间，在通过一些 路由器所构成的路径上建立一个网络层连接<br>     涉及到路由器 </p>
+<p> <strong>网络层和传输层连接服务区别:</strong><br>     <strong>网络层: 在2个主机之间，涉及到路径上的一些路由器</strong>  —— 有连接<br>     <strong>传输层: 在2个进程之间，很可能只体现在端系统上 (TCP连接)</strong>  —— 面向连接</p>
+<h3 id="一些网络层服务模型"><a href="#一些网络层服务模型" class="headerlink" title="一些网络层服务模型"></a>一些网络层服务模型</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001103624022.png" alt="image-20211001103624022"></p>
+<h1 id="4-2-路由器组成"><a href="#4-2-路由器组成" class="headerlink" title="4.2 路由器组成"></a>4.2 路由器组成</h1><h2 id="路由器结构概况-传统"><a href="#路由器结构概况-传统" class="headerlink" title="路由器结构概况 (传统)"></a>路由器结构概况 (传统)</h2><p>高层面(非常简化的)通用路由器体系架构 </p>
+<ul>
+<li>路由：运行路由选择算法／协议 (RIP, OSPF, BGP) - 生成 路由表 </li>
+<li>转发：从输入到输出链路交换数据报 - 根据路由表进行分组的转发</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001103919273.png" alt="image-20211001103919273"></p>
+<h2 id="输入端口功能"><a href="#输入端口功能" class="headerlink" title="输入端口功能"></a>输入端口功能</h2><p>输入端口有个队列</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104327835.png" alt="image-20211001104327835"></p>
+<h3 id="输入端口缓存"><a href="#输入端口缓存" class="headerlink" title="输入端口缓存"></a>输入端口缓存</h3><ul>
+<li>当交换机构的速率小于输入端口的汇聚速率时， 在输入端口可能要排队 <ul>
+<li><strong>==排队延迟以及由于输入缓存溢出造成丢失!==</strong> </li>
+</ul>
+</li>
+<li>Head-of-the-Line (HOL) blocking: 排在队头的数据报 阻止了队列中其他数据报向前移动</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104653702.png" alt="image-20211001104653702"></p>
+<h2 id="交换结构"><a href="#交换结构" class="headerlink" title="交换结构"></a>交换结构</h2><p> 将分组从输入缓冲区传输到合适的输出端口<br> 交换速率：分组可以按照该速率从输入传输到输 出<br>     运行速度经常是输入/输出链路速率的若干倍<br>     N 个输入端口：交换机构的交换速度是输入线路速度的N倍比较理 想，才不会成为瓶颈<br> 3种典型的交换机构</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104817961.png" alt="image-20211001104817961"></p>
+<h3 id="通过内存交换"><a href="#通过内存交换" class="headerlink" title="通过内存交换"></a>通过内存交换</h3><p>第一代路由器:</p>
+<ul>
+<li>在CPU直接控制下的交换，采用传统的计算机</li>
+<li><strong>分组被拷贝到系统内存，CPU从分组的头部提取出目标地址，查找转发表，找到对应的输出端口，拷贝到输出端口</strong></li>
+<li><strong>转发速率被内存的带宽限制(数据报通过BUS两遍)</strong></li>
+<li>一次只能转发一个分组</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104907438.png" alt="image-20211001104907438"></p>
+<h3 id="通过总线交换"><a href="#通过总线交换" class="headerlink" title="通过总线交换"></a>通过总线交换</h3><ul>
+<li>数据报通过共享总线，从输入端 <ul>
+<li>转发到输出端口 </li>
+</ul>
+</li>
+<li><strong>总线竞争: 交换速度受限于总线带宽</strong> </li>
+<li>1次处理一个分组 </li>
+<li>1 Gbps bus, Cisco 1900； 32 Gbps bus, Cisco 5600；<br>对于接 入或企业级路由器，速度足够（ 但不适合区域或骨干网络）</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001104959142.png" alt="image-20211001104959142"></p>
+<h3 id="通过互联网络-crossbar等-的交换"><a href="#通过互联网络-crossbar等-的交换" class="headerlink" title="通过互联网络(crossbar等)的交换"></a>通过互联网络(crossbar等)的交换</h3><p><strong>同时并发转发多个分组，克服总线带宽限制</strong></p>
+<ul>
+<li>Banyan(榕树〉网络，crossbar(纵横)和其它的互联网络被开发，将多个处理器连接成多处理器</li>
+<li>当分组从端口A到达，转给端口Y;控制器短接相应的两个总线</li>
+<li>高级设计:将数据报分片为固定长度的信元，通过交换网络交换</li>
+<li>Cisco12000:以60Gbps的交换速率通过互联网络</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105151671.png" alt="image-20211001105151671"></p>
+<h2 id="输出端口"><a href="#输出端口" class="headerlink" title="输出端口"></a>输出端口</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105403564.png" alt="image-20211001105403564"></p>
+<p> 当数据报从交换机构的到达速度比传输速率快 就需要输出端口缓存 </p>
+<p> 由调度规则选择排队的数据报进行传输</p>
+<p>优先权调度-谁会获得最优性能， 网络中立？</p>
+<h3 id="输出端口排队"><a href="#输出端口排队" class="headerlink" title="输出端口排队"></a>输出端口排队</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105440439.png" alt="image-20211001105440439"></p>
+<ul>
+<li>假设交换速率Rswitch是Rline的N倍（N：输入端口的数量） </li>
+<li>当多个输入端口同时向输出端口发送时，缓冲该分组（当通 过交换网络到达的速率超过输出速率则缓存） </li>
+<li><strong>排队带来延迟，由于输出端口缓存溢出则丢弃数据报！</strong></li>
+</ul>
+<h3 id="需要多少缓存"><a href="#需要多少缓存" class="headerlink" title="需要多少缓存?"></a>需要多少缓存?</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001105910410.png" alt="image-20211001105910410"></p>
+<h2 id="调度机制"><a href="#调度机制" class="headerlink" title="调度机制"></a>调度机制</h2><p><strong>调度: 选择下一个要通过链路传输的分组</strong> </p>
+<ul>
+<li>FIFO (first in first out) scheduling: 按照分组到来的次序发送 <ul>
+<li>现实例子? </li>
+<li>丢弃策略: 如果分组到达一个满的队列，哪个分组将会 被抛弃? <ul>
+<li>tail drop: 丢弃刚到达的分组 </li>
+<li>priority: 根据优先权丢失/移除分组 </li>
+<li>random: 随机地丢弃/移除</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="调度策略：优先权"><a href="#调度策略：优先权" class="headerlink" title="调度策略：优先权"></a>调度策略：优先权</h3><p>优先权调度：发送最高优先 权的分组 </p>
+<ul>
+<li>多类，不同类别有不同的 优先权 <ul>
+<li>类别可能依赖于标记或者其 他的头部字段, e.g. IP source/dest, port numbers, ds，etc. </li>
+<li>先传高优先级的队列中的分 组，除非没有 </li>
+<li>高（低）优先权中的分组传 输次序：FIFO </li>
+<li>现实生活中的例子? </li>
+</ul>
+</li>
+</ul>
+<p>有红的不传绿的</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001110210112.png" alt="image-20211001110210112"></p>
+<h3 id="调度策略：其他的"><a href="#调度策略：其他的" class="headerlink" title="调度策略：其他的"></a>调度策略：其他的</h3><p>Round Robin (RR) scheduling:<br> 多类<br> <strong>循环扫描不同类型的队列, 发送完一类的一个分组 ，再发送下一个类的一个分组，循环所有类</strong><br> 现实例子?</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111117490.png" alt="image-20211001111117490"></p>
+<p>Weighted Fair Queuing (WFQ):<br> 一般化的Round Robin<br> <strong>在一段时间内，每个队列得到的服务时间是：  Wi /(XIGMA(Wi )) *t ，和权重成正比</strong><br> 每个类在每一个循环中获得不同权重的服务量<br> 现实例子</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111153165.png" alt="image-20211001111153165"></p>
+<h1 id="4-3-IP-Internet-Protocol"><a href="#4-3-IP-Internet-Protocol" class="headerlink" title="4.3 IP: Internet Protocol"></a>4.3 IP: Internet Protocol</h1><p>ICMP（Internet Control Message Protocol）Internet控制<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/报文/3164352">报文</a>协议</p>
+<p>互联网的网络层<br>主机,路由器中的网络层功能：</p>
+<p>IP协议主要实现的是数据平面的转发功能</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111457486.png" alt="image-20211001111457486"></p>
+<h2 id="IP-数据报格式"><a href="#IP-数据报格式" class="headerlink" title="IP 数据报格式"></a>IP 数据报格式</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001111652067.png" alt="image-20211001111652067"></p>
+<p>、</p>
+<p><strong>==16-bit identifier        flgs        fragment offset        ——        分片/重组使用==</strong></p>
+<h2 id="IP-分片和重组-Fragmentation-amp-Reassembly"><a href="#IP-分片和重组-Fragmentation-amp-Reassembly" class="headerlink" title="IP 分片和重组(Fragmentation &amp; Reassembly)"></a>IP 分片和重组(Fragmentation &amp; Reassembly)</h2><ul>
+<li><strong>网络链路有MTU (最大传输单元) –链路层帧所携带的最大数据长度</strong> <ul>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_42248536/article/details/88819222">不同的链路类型</a>  —— <strong>Access链路</strong>、<strong>Trunk链路</strong>、</li>
+<li>不同的MTU </li>
+</ul>
+</li>
+<li>大的IP数据报在网络上被分片 (“fragmented”)<ul>
+<li>一个数据报被分割成若干个小 的数据报 <ul>
+<li>相同的ID </li>
+<li>不同的偏移量 </li>
+<li>最后一个分片标记为0 </li>
+</ul>
+</li>
+<li>“重组”只在最终的目标主机进行 </li>
+<li>IP头部的信息被用于标识，排序相关分片</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001133625648.png" alt="image-20211001133625648"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001133700562.png" alt="image-20211001133700562"></p>
+<p>flagflag —— 标识后面还有没有</p>
+<h2 id="IP-编址-引论"><a href="#IP-编址-引论" class="headerlink" title="IP 编址: 引论"></a>IP 编址: 引论</h2><ul>
+<li>IP 地址: 32位标示，对 主机或者路由器的接口编址 </li>
+<li>接口: 主机/路由器和物 理链路的连接处 <ul>
+<li>路由器通常拥有多个接口 </li>
+<li>主机也有可能有多个接口 </li>
+<li>IP地址和每一个接口关联 </li>
+</ul>
+</li>
+<li>一个IP地址和一个接口相关联</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001135955479.png" alt="image-20211001135955479"></p>
+<h3 id="子网-Subnets"><a href="#子网-Subnets" class="headerlink" title="子网(Subnets)"></a>子网(Subnets)</h3><ul>
+<li><strong>IP地址:</strong> <ul>
+<li>子网部分(高位bits) </li>
+<li>主机部分(低位bits) </li>
+</ul>
+</li>
+<li><strong>什么是子网(subnet) ?</strong> <ul>
+<li><strong>一个子网内的节点（主 机或者路由器）它们的 IP地址的高位部分相同 ，这些节点构成的网络的一部分叫做子网</strong> </li>
+<li><strong>无需路由器介入，子网内各主机可以在物理上相互直接到达</strong>   ——   只需要交换机即可，一跳可达</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001142106457.png" alt="image-20211001142106457"></p>
+<p><strong>长途链路 —— 点到点的形式   中国到日本的链路</strong><br><strong>计算机局域网  ——  多点连接的方式</strong></p>
+<p>方法：<br> <strong>要判断一个子网, 将每一个接口从主机或者路由 器上分开,构成了一个个网络的孤岛</strong><br> <strong>每一个孤岛（网络）都 是一个都可以被称之为 subnet.</strong></p>
+<p>子网掩码：11111111 11111111 11111111 00000000<br>Subnet mask: /24</p>
+<h3 id="IP-地址分类"><a href="#IP-地址分类" class="headerlink" title="IP 地址分类"></a>IP 地址分类</h3><p> Class A：126 networks ，16 million hosts<br> Class B：16382networks ，64 K hosts<br> Class C：2 million networks ，254 host<br> Class D：multicast<br> Class E：reserved for future<br>全0全1不用</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001142823822.png" alt="image-20211001142823822"></p>
+<h3 id="特殊IP地址"><a href="#特殊IP地址" class="headerlink" title="特殊IP地址"></a>特殊IP地址</h3><ul>
+<li>一些约定：<ul>
+<li><strong>子网部分: 全为 0—-本网络</strong>       <strong>127   Loopback —— 回路地址</strong></li>
+<li><strong>主机部分: 全为0—-本主机</strong> </li>
+<li><strong>主机部分: 全为1—广播地址，这个网络的所有主机</strong> </li>
+<li>除了前面的类号   <strong>全为1——在本地网络广播</strong></li>
+</ul>
+</li>
+<li>特殊IP地址</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001142922347.png" alt="image-20211001142922347"></p>
+<h3 id="内网-专用-IP地址"><a href="#内网-专用-IP地址" class="headerlink" title="内网(专用)IP地址"></a>内网(专用)IP地址</h3><ul>
+<li><strong>专用地址：地址空间的一部份供专用地址使用</strong> </li>
+<li>永远不会被当做公用地址来分配, 不会与公用地址重复 <ul>
+<li>只在局部网络中有意义，区分不同的设备 </li>
+</ul>
+</li>
+<li><strong>路由器不对目标地址是专用地址的分组进行转发</strong> </li>
+<li>专用地址范围 <ul>
+<li><strong>Class A 10.0.0.0-10.255.255.255 MASK 255.0.0.0</strong> </li>
+<li><strong>Class B 172.16.0.0-172.31.255.255 MASK 255.255.0.0</strong> </li>
+<li><strong>Class C 192.168.0.0-192.168.255.255 MASK 255.255.255.0</strong></li>
+</ul>
+</li>
+</ul>
+<h3 id="IP-编址-CIDR"><a href="#IP-编址-CIDR" class="headerlink" title="IP 编址: CIDR"></a>IP 编址: CIDR</h3><p>CIDR: Classless InterDomain Routing （无类域间路由） </p>
+<ul>
+<li>子网部分可以在任意的位置 </li>
+<li>地址格式: a.b.c.d/x, 其中 x 是 地址中子网号的长度</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001143934822.png" alt="image-20211001143934822"></p>
+<h3 id="子网掩码-subnet-mask"><a href="#子网掩码-subnet-mask" class="headerlink" title="子网掩码(subnet mask)"></a>子网掩码(subnet mask)</h3><ul>
+<li>32bits ,0 or 1 in each bito <ul>
+<li>1: bit位置表示子网部分</li>
+<li>0:bit位置表示主机部分</li>
+</ul>
+</li>
+<li>原始的A、B、C类网络的子网掩码分别是<ul>
+<li>A:255.0.0.0 : 11111111 00000000 00000000 00000000</li>
+<li>B:255,255.0.0:11111111 11111111 0000000 00000000</li>
+<li>C:255,255,255.0:11111111 11111111 11111111 00000000</li>
+</ul>
+</li>
+<li>CIDR下的子网掩码例子:<ul>
+<li>1111111111111111 11111100 0o0000oo</li>
+</ul>
+</li>
+<li>另外的一种表示子网掩码的表达方式<ul>
+<li>/#</li>
+<li>例:/22:表示前面22个bit为子网部分</li>
+</ul>
+</li>
+</ul>
+<h3 id="转发表和转发算法"><a href="#转发表和转发算法" class="headerlink" title="转发表和转发算法"></a>转发表和转发算法</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001144206732.png" alt="image-20211001144206732"></p>
+<ul>
+<li>获得IP数据报的目标地址 </li>
+<li>对于转发表中的每一个表项 <ul>
+<li>如 (IP Des addr) &amp; (mask)== destination, 则按照表项 对应的接口转发该数据报 </li>
+<li>如果都没有找到,则使用默认表项转发数据报</li>
+</ul>
+</li>
+</ul>
+<h2 id="如何获得一个IP地址-主机"><a href="#如何获得一个IP地址-主机" class="headerlink" title="如何获得一个IP地址   主机"></a>如何获得一个IP地址   主机</h2><p>Q: 主机如何获得一个IP地址?</p>
+<ul>
+<li>系统管理员将地址配置在一个文件中 <ul>
+<li>Wintel: control-panel-&gt;network- &gt;configuration-&gt;tcp/ip-&gt;properties </li>
+<li>UNIX: /etc/rc.config</li>
+</ul>
+</li>
+<li><strong>DHCP: Dynamic Host Configuration Protocol: 从服务器中动态获得一个IP地址</strong> <ul>
+<li>“plug-and-play</li>
+</ul>
+</li>
+</ul>
+<h3 id="DHCP-Dynamic-Host-Configuration-Protocol"><a href="#DHCP-Dynamic-Host-Configuration-Protocol" class="headerlink" title="DHCP: Dynamic Host Configuration Protocol"></a>DHCP: Dynamic Host Configuration Protocol</h3><ul>
+<li>目标:允许主机在加入网络的时候，动态地从服务器那里获得IP地址:<ul>
+<li><strong>可以更新对主机在用IP地址的租用期-租期快到了</strong></li>
+<li><strong>重新启动时，允许重新使用以前用过的IP地址</strong></li>
+<li><strong>支持移动用户加入到该网络（短期在网）</strong></li>
+</ul>
+</li>
+<li>DHCP工作概况:<ul>
+<li>主机广播“DHCP discover”报文[可选]</li>
+<li>DHCP服务器用“DHCP offer”提供报文响应[可选]</li>
+<li>主机请求IP地址:发送“DHCP request”报文</li>
+<li>DHCP服务器发送地址:“DHCP ack”报文</li>
+</ul>
+</li>
+</ul>
+<h3 id="DHCP-client-server-scenario"><a href="#DHCP-client-server-scenario" class="headerlink" title="DHCP client-server scenario"></a>DHCP client-server scenario</h3><p><strong>第二次是因为可能有多个DHCP 服务器，要确认用哪一个</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001144822831.png" alt="image-20211001144822831"></p>
+<h3 id="DHCP-不仅仅是IP-addresses"><a href="#DHCP-不仅仅是IP-addresses" class="headerlink" title="DHCP: 不仅仅是IP addresses"></a>DHCP: 不仅仅是IP addresses</h3><p>DHCP 返回: </p>
+<ul>
+<li>IP 地址 </li>
+<li>第一跳路由器的IP地址（默认网关） </li>
+<li>DNS服务器的域名和IP地址 </li>
+<li>子网掩码 (指示地址部分的网络号和主机号)</li>
+</ul>
+<h3 id="DHCP-实例"><a href="#DHCP-实例" class="headerlink" title="DHCP: 实例"></a>DHCP: 实例</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001145225819.png" alt="image-20211001145225819"></p>
+<p>第一次握手</p>
+<p>联网笔记本需要获取自己的IP地址，第一跳路由器地址和DNS服务器:采用DHCP协议<br>DHCP请求被封装在UDP段中,封装在IP数据报中，封装在以太网的帧中<br>以太网帧在局域网范围内广播(dest: FFFFFFFFFFFF)<br>被运行DHCP服务的路由器收到<br>以太网帧解封装成IP，IP解封装成UDP，解封装成DHCP</p>
+<p>DHCP服务器生成DHCP ACK,包含客户端的IP地址，第一跳路由器的IP地址和DNS域名服务器的IP地址<br>DHCP服务器封装的报文所在的帧转发到客户端，在客户端解封装成DHCP报文<br>客户端知道它自己的IP地址，DNS服务器的名字和IP地址，第一跳路由器的IP地址</p>
+<p>第二次握手 略</p>
+<h2 id="如何获得一个IP地址-机构"><a href="#如何获得一个IP地址-机构" class="headerlink" title="如何获得一个IP地址   机构"></a>如何获得一个IP地址   机构</h2><p>Q: 如何获得一个网络的子网部分?<br>A: 从ISP获得地址块中分配一个小地址块</p>
+<p>ISP’s block 11001000 00010111 00010000 00000000 200.23.16.0/20<br>Organization 0 11001000 00010111 00010000 00000000 200.23.16.0/23<br>Organization 1 11001000 00010111 00010010 00000000 200.23.18.0/23<br>Organization 2 11001000 00010111 00010100 00000000 200.23.20.0/23<br>                                                        … ….. …. ….<br>Organization 7 11001000 00010111 00011110 00000000 200.23.30.0/23</p>
+<h3 id="层次编址-路由聚集（route-aggregation）-聚集"><a href="#层次编址-路由聚集（route-aggregation）-聚集" class="headerlink" title="层次编址: 路由聚集（route aggregation）          聚集"></a>层次编址: 路由聚集（route aggregation）          聚集</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001145630149.png" alt="image-20211001145630149"></p>
+<h3 id="层次编址-特殊路由信息-more-specific-routes"><a href="#层次编址-特殊路由信息-more-specific-routes" class="headerlink" title="层次编址: 特殊路由信息(more specific routes)"></a>层次编址: 特殊路由信息(more specific routes)</h3><p><strong>==匹配冲突时候，采取的是最长前缀匹配==</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001150738412.png" alt="image-20211001150738412"></p>
+<h2 id="IP-编址-如何获得一块地址-ISP"><a href="#IP-编址-如何获得一块地址-ISP" class="headerlink" title="IP 编址: 如何获得一块地址 ISP"></a>IP 编址: 如何获得一块地址 ISP</h2><p>Q: 一个ISP如何获得一个地址块?<br>A: ICANN: Internet Corporation for Assigned Names and Numbers </p>
+<ul>
+<li>分配地址 </li>
+<li>管理DNS </li>
+<li>分配域名，解决冲突</li>
+</ul>
+<h2 id="NAT-Network-Address-Translation-网络地址转换-内网"><a href="#NAT-Network-Address-Translation-网络地址转换-内网" class="headerlink" title="NAT: Network Address Translation  网络地址转换(内网)"></a>NAT: Network Address Translation  网络地址转换(内网)</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001150949929.png" alt="image-20211001150949929"></p>
+<ul>
+<li>动机: 本地网络只有一个有效IP地址:        分配更多地址<ul>
+<li><strong>不需要从ISP分配一块地址，可用一个IP地址用于所有的（局域网）设备—省钱</strong> </li>
+<li><strong>可以在局域网改变设备的地址情况下而无须通知 外界</strong> </li>
+<li><strong>可以改变ISP（地址变化）而不需要改变内部的 设备地址</strong> </li>
+<li><strong>局域网内部的设备没有明确的地址，对外是不可 见的—安全</strong></li>
+</ul>
+</li>
+</ul>
+<p><strong>实现: NAT 路由器必须:</strong></p>
+<ul>
+<li><strong>==外出数据包：替换源地址和端口号为NAT IP地址 和新的端口号，==</strong><br>目标IP和端口不变 …远端的C/S将会用NAP IP地址，新端口号作为目标地址</li>
+<li>记住每个转换替换对（在NAT转换表中）<br> ==<strong>.. 源IP，端口 vs NAP IP ，新端口</strong>== </li>
+<li><strong>==进入数据包：替换目标IP地址和端口号，==</strong><br>采用存储在NAT表中的mapping表项，用（源IP，端口）</li>
+</ul>
+<p><strong>实际上就是用外网的某个IP代替内网里面的网络号，</strong><br><strong>出去的时候替换   原来IP 和 端口号</strong><br><strong>进来的时候替换    目标IP 和 端口号</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152133538.png" alt="image-20211001152133538"></p>
+<h3 id="NAT-穿越问题（略）"><a href="#NAT-穿越问题（略）" class="headerlink" title="NAT 穿越问题（略）"></a>NAT 穿越问题（略）</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152533723.png" alt="image-20211001152533723"></p>
+<ul>
+<li><p>客户端需要连接地址为 10.0.0.1的服务器 </p>
+<ul>
+<li>服务器地址10.0.0.1 LAN本地地址 (客户端不能够使用其作为目标地址) </li>
+<li>整网只有一个外部可见地址: 138.76.29.7 </li>
+</ul>
+</li>
+<li><p><strong>方案1: 静态配置NAT：转发 进来的对服务器特定端口连接 请求</strong></p>
+<ul>
+<li>e.g., (123.76.29.7, port 2500) 总是转发到10.0.0.1 port 25000</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152723380.png" alt="image-20211001152723380"></p>
+</li>
+<li><p><strong>方案2: Universal Plug and Play (UPnP) Internet Gateway Device (IGD) 协议. 允许 NATted主机可以:</strong>    动态分配端口</p>
+<ul>
+<li> 获知网络的公共 IP地址 (138.76.29.7) </li>
+<li> 列举存在的端口映射</li>
+<li> 增/删端口映射 (在租用时间内 )</li>
+</ul>
+</li>
+<li>i.e., 自动化静态NAT端口映射配 置</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001152732177.png" alt="image-20211001152732177"></p>
+<ul>
+<li><strong>方案 3: 中继 (used in Skype)</strong> <ul>
+<li> NAT后面的服务器建立和中继的连接 </li>
+<li> 外部的客户端链接到中继 </li>
+<li> 中继在2个连接之间桥接</li>
+</ul>
+</li>
+</ul>
+<h2 id="IPv6"><a href="#IPv6" class="headerlink" title="IPv6"></a>IPv6</h2><h3 id="IPv6：动机"><a href="#IPv6：动机" class="headerlink" title="IPv6：动机"></a>IPv6：动机</h3><ul>
+<li>初始动机: 32-bit地址空间将会被很快用完 </li>
+<li>另外的动机: <ul>
+<li>头部格式改变帮助加速处理和转发 、<ul>
+<li>TTL-1 </li>
+<li>头部checksum </li>
+<li>分片 </li>
+</ul>
+</li>
+<li>头部格式改变帮助QoS </li>
+</ul>
+</li>
+</ul>
+<p>IPv6 数据报格式: </p>
+<ul>
+<li>固定的40 字节头部 </li>
+<li>数据报传输过程中，不允许分片</li>
+</ul>
+<h3 id="IPv6-头部-Cont"><a href="#IPv6-头部-Cont" class="headerlink" title="IPv6 头部 (Cont)"></a>IPv6 头部 (Cont)</h3><p>Priority: 标示流中数据报的优先级<br>Flow Label: 标示数据报在一个“flow.” ( “flow”的概念没有被严格的定义)<br>Next header: 标示上层协议</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153026504.png" alt="image-20211001153026504"></p>
+<h3 id="和IPv4的其它变化"><a href="#和IPv4的其它变化" class="headerlink" title="和IPv4的其它变化"></a>和IPv4的其它变化</h3><ul>
+<li>Checksum: 被移除掉，降低在每一段中的处理 速度 </li>
+<li>Options: 允许，但是在头部之外, 被 “Next Header” 字段标示 </li>
+<li>ICMPv6: ICMP的新版本 <ul>
+<li>附加了报文类型, e.g. “Packet Too Big” </li>
+<li>多播组管理功能</li>
+</ul>
+</li>
+</ul>
+<h3 id="从IPv4到IPv6的平移"><a href="#从IPv4到IPv6的平移" class="headerlink" title="从IPv4到IPv6的平移"></a>从IPv4到IPv6的平移</h3><ul>
+<li>不是所有的路由器都能够同时升级的 <ul>
+<li>没有一个标记日 “flag days” </li>
+<li>在IPv4和IPv6路由器混合时，网络如何运转? </li>
+</ul>
+</li>
+<li><strong>隧道: 在IPv4路由器之间传输的IPv4数据报中携 带IPv6数据报</strong></li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153350960.png" alt="image-20211001153350960"></p>
+<h3 id="隧道-Tunneling"><a href="#隧道-Tunneling" class="headerlink" title="隧道(Tunneling)"></a>隧道(Tunneling)</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153500951.png" alt="image-20211001153500951"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001153521591.png" alt="image-20211001153521591"></p>
+<h3 id="IPv6-应用"><a href="#IPv6-应用" class="headerlink" title="IPv6: 应用"></a>IPv6: 应用</h3><ul>
+<li>Google: 8% 的客户通过IPv6访问谷歌服务</li>
+<li>NIST: 全美国1/3的政府域支持IPv6 </li>
+<li>估计还需要很长时间进行部署 <ul>
+<li>20年以上! </li>
+<li>看看过去20年来应用层面的变化: WWW, Facebook, streaming media, Skype, … </li>
+<li>为什么?</li>
+</ul>
+</li>
+</ul>
+<h1 id="4-4-通用转发和SDN"><a href="#4-4-通用转发和SDN" class="headerlink" title="4.4 通用转发和SDN"></a>4.4 通用转发和SDN</h1><h2 id="网络层功能为例的数据平面和控制平面"><a href="#网络层功能为例的数据平面和控制平面" class="headerlink" title="网络层功能为例的数据平面和控制平面"></a>网络层功能为例的数据平面和控制平面</h2><p><strong>网络层功能：</strong> </p>
+<ul>
+<li>转发： 对于从某个端口 到来的分组转发到合适的 输出端口 </li>
+<li>路由： 决定分组从源端 到目标端的路径 <ul>
+<li>路由算法</li>
+</ul>
+</li>
+</ul>
+<p><strong>类比: 旅行</strong></p>
+<ul>
+<li>转发： 一个多岔路口的进入和转出过程 </li>
+<li>路由: 规划从源到目标的旅行路径</li>
+</ul>
+<p><strong>数据平面</strong>    <strong>==细节==</strong></p>
+<ul>
+<li>本地的、每个路由器的 功能 </li>
+<li>决定某个从某个端口进 入的分组从从哪个端口 输出 </li>
+<li>转发功能</li>
+</ul>
+<p><strong>控制平面</strong>    ==<strong>整体</strong>==</p>
+<ul>
+<li>网络范围的逻辑 </li>
+<li>决定分组端到端穿行于各个路 由器的路径</li>
+</ul>
+<h2 id="每个路由器-Per-Route-的控制平面-（传统）"><a href="#每个路由器-Per-Route-的控制平面-（传统）" class="headerlink" title="每个路由器(Per Route)的控制平面  （传统）"></a>每个路由器(Per Route)的控制平面  （传统）</h2><p><strong>每个路由器上都有实现路由算法元件（它们之间需要相互交 互）- 形成传统IP实现方式的控制平面</strong></p>
+<p><strong>控制平面式分布式的，由各个路由器的各自完成，难于管理</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001154409133.png" alt="image-20211001154409133"></p>
+<h3 id="数量众多、功能各异的中间盒"><a href="#数量众多、功能各异的中间盒" class="headerlink" title="数量众多、功能各异的中间盒"></a>数量众多、功能各异的中间盒</h3><ul>
+<li>路由器的网络层功能： <ul>
+<li>IP转发：对于到来的分组按照路由表决定如何转发，数 据平面 </li>
+<li>路由：决定路径，计算路由表；处在控制平面 </li>
+</ul>
+</li>
+<li>还有其他种类繁多网络设备（中间盒）： <ul>
+<li>交换机；防火墙；NAT；IDS；负载均衡设备 </li>
+<li>未来：不断增加的需求和相应的网络设备 </li>
+<li><strong>需要不同的设备去实现不同的网络功能</strong> <ul>
+<li><strong>每台设备集成了控制平面和数据平面的功能</strong> </li>
+<li><strong>控制平面分布式地实现了各种控制平面功能</strong> </li>
+<li><strong>升级和部署网络设备非常困难</strong></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="网络设备控制平面的实现方式特点"><a href="#网络设备控制平面的实现方式特点" class="headerlink" title="网络设备控制平面的实现方式特点"></a>网络设备控制平面的实现方式特点</h3><ul>
+<li><p><strong>==互联网网络设备：传统方式都是通过分布式，每台 备的方法来实现数据平面和控制平面功能==</strong> </p>
+<ul>
+<li>垂直集成：每台路由器或其他网络设备，包括： <ul>
+<li>1）硬件、在私有的操作系统； </li>
+<li>2）互联网标准协议(IP, RIP, IS-IS, OSPF, BGP)的私有实现 </li>
+<li>从上到下都由一个厂商提供（代价大、被设备上“绑架”“） </li>
+</ul>
+</li>
+<li>每个设备都实现了数据平面和控制平面的事情 <ul>
+<li>控制平面的功能是分布式实现的 </li>
+</ul>
+</li>
+<li>设备基本上只能（分布式升级困难）按照固定方式工作， 控制逻辑固化。不同的网络功能需要不同的 “middleboxes”：防火墙、负载均衡设备、NAT boxes, .</li>
+</ul>
+</li>
+<li><p>（数据+控制平面）集成&gt;（控制逻辑）分布-&gt;固化 </p>
+<ul>
+<li>代价大；升级困难；管理困难等</li>
+</ul>
+</li>
+</ul>
+<h3 id="传统方式实现网络功能的问题"><a href="#传统方式实现网络功能的问题" class="headerlink" title="传统方式实现网络功能的问题"></a>传统方式实现网络功能的问题</h3><ul>
+<li>问题： <ul>
+<li><strong>垂直集成&gt;昂贵、不便于创新的生态</strong> </li>
+<li><strong>分布式、固化设备功能==网络设备种类繁多</strong> <ul>
+<li>无法改变路由等工作逻辑，无法实现流量工程等高级 特性 </li>
+<li>配置错误影响全网运行；升级和维护会涉及到全网设 备：管理困难 </li>
+<li>要增加新的网络功能，需要设计、实现以及部署新的 特定设备，设备种类繁多 </li>
+</ul>
+</li>
+</ul>
+</li>
+<li>~2005: 开始重新思考网络控制平面的处理方式 <ul>
+<li>集中：远程的控制器集中实现控制逻辑 </li>
+<li>远程：数据平面和控制平面的分离</li>
+</ul>
+</li>
+</ul>
+<h2 id="SDN：逻辑上集中的控制平面-（新）"><a href="#SDN：逻辑上集中的控制平面-（新）" class="headerlink" title="SDN：逻辑上集中的控制平面 （新）"></a>SDN：逻辑上集中的控制平面 （新）</h2><p>一个不同的（通常是远程）控制器和CA交互，控制器决定分组 转发的逻辑（可编程），CA所在设备执行逻辑。</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001155320593.png" alt="image-20211001155320593"></p>
+<h3 id="SDN的主要思路"><a href="#SDN的主要思路" class="headerlink" title="SDN的主要思路"></a>SDN的主要思路</h3><ul>
+<li>网络设备数据平面和控制平面分离 </li>
+<li>数据平面-分组交换机 <ul>
+<li>将路由器、交换机和目前大多数网络设备的功能进一步抽 象成：按照流表（由控制平面设置的控制逻辑）进行PDU （帧、分组）的动作（包括转发、丢弃、拷贝、泛洪、阻 塞） </li>
+<li>统一化设备功能：SDN交换机（分组交换机），执行控制 逻辑 </li>
+</ul>
+</li>
+<li>控制平面-控制器+网络应用 <ul>
+<li>分离、集中 </li>
+<li>计算和下发控制逻辑：流表</li>
+</ul>
+</li>
+</ul>
+<h3 id="SDN控制平面和数据平面分离的优势"><a href="#SDN控制平面和数据平面分离的优势" class="headerlink" title="SDN控制平面和数据平面分离的优势"></a>SDN控制平面和数据平面分离的优势</h3><ul>
+<li><strong>水平集成控制平面</strong>的<strong>开放实现</strong>（而非私有实 现），创造出好的产业生态，促进发展 <ul>
+<li>分组交换机、控制器和各种控制逻辑网络应用app可由不同 厂商生产，专业化，引入竞争形成良好生态 </li>
+</ul>
+</li>
+<li><strong>集中式</strong>实现控制逻辑，网络<strong>管理容易</strong>： <ul>
+<li>集中式控制器了解网络状况，编程简单，传统方式困难 </li>
+<li>避免路由器的误配置 </li>
+</ul>
+</li>
+<li><strong>基于流表的匹配+行动的工作方式允许“可编程的”分组交换机</strong> <ul>
+<li>实现流量工程等高级特性 </li>
+<li>在此框架下实现各种新型（未来）的网络设备</li>
+</ul>
+</li>
+</ul>
+<h3 id="类比-主框架到PC的演变"><a href="#类比-主框架到PC的演变" class="headerlink" title="类比: 主框架到PC的演变"></a>类比: 主框架到PC的演变</h3><p><strong>要买硬件 就要买操作系统  就要买专用的软件</strong></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001155703049.png" alt="image-20211001155703049"></p>
+<h2 id="流量工程-传统路由比较困难"><a href="#流量工程-传统路由比较困难" class="headerlink" title="流量工程: 传统路由比较困难"></a>流量工程: 传统路由比较困难</h2><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160320932.png" alt="image-20211001160320932"></p>
+<p><strong>==Q: 网管如果需要u到z的流量走uvwz,x到z的流量走xwyz，怎么办？==</strong> </p>
+<p>A: <strong>需要定义链路的代价</strong>，流量路由算法以此运算<strong>（ IP路由面向目标，无法操作）</strong> (或者需要新的路由算法)! </p>
+<p>链路权重只是控制旋钮，错！</p>
+<h3 id="流量工程：困难"><a href="#流量工程：困难" class="headerlink" title="流量工程：困难"></a>流量工程：困难</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160555463.png" alt="image-20211001160555463"></p>
+<p>Q: 如果网管需要将u到z的流量分成2路：uvwz 和uxyz ( 负载均衡)，怎么办?（IP路由面向目标） </p>
+<p>A: 无法完成(在原有体系下只有使用新的路由选择算法 ，而在全网部署新的路由算法是个大的事情)</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160622576.png" alt="image-20211001160622576"></p>
+<p>Q:如果需要w对蓝色的和红色的流量采用不同的路由，怎么办？ </p>
+<p>A: 无法操作 (基于目标的转发，采用LS, DV 路由)</p>
+<h3 id="SDN特点"><a href="#SDN特点" class="headerlink" title="SDN特点"></a>SDN特点</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001160657605.png" alt="image-20211001160657605"></p>
+<h2 id="SDN-架构"><a href="#SDN-架构" class="headerlink" title="SDN 架构"></a>SDN 架构</h2><h3 id="SDN-架构-数据平面交换机"><a href="#SDN-架构-数据平面交换机" class="headerlink" title="SDN 架构: 数据平面交换机"></a>SDN 架构: 数据平面交换机</h3><p>数据平面交换机 </p>
+<ul>
+<li>快速，简单，商业化交换设备 采用硬件实现通用转发功能 </li>
+<li>流表被控制器计算和安装 </li>
+<li><strong>基于南向API（例如OpenFlow ），SDN控制器访问基于流的交换机</strong> <ul>
+<li>定义了哪些可以被控制哪些不能 </li>
+</ul>
+</li>
+<li>也定义了和控制器的协议 (e.g., OpenFlow)</li>
+</ul>
+<h3 id="SDN-架构-SDN控制器"><a href="#SDN-架构-SDN控制器" class="headerlink" title="SDN 架构: SDN控制器"></a>SDN 架构: SDN控制器</h3><p>SDN 控制器(网络OS): </p>
+<ul>
+<li>维护网络状态信息 </li>
+<li><strong>通过上面的北向API和网络 控制应用交互</strong>   向上</li>
+<li><strong>通过下面的南向API和网络 交换机交互</strong>       向下</li>
+<li>逻辑上集中，但是在实现上通常由于性能、可扩展性、 容错性以及鲁棒性采用分布式方法</li>
+</ul>
+<h3 id="SDN-架构-控制应用"><a href="#SDN-架构-控制应用" class="headerlink" title="SDN 架构: 控制应用"></a>SDN 架构: 控制应用</h3><p>网络控制应用: </p>
+<ul>
+<li>控制的大脑： 采用下层提供 的服务（SDN控制器提供的 API)，实现网络功能 <ul>
+<li>路由器 交换机 </li>
+<li>接入控制 防火墙 </li>
+<li>负载均衡 </li>
+<li>其他功能 </li>
+</ul>
+</li>
+<li>非绑定：可以被第三方提供 ，与控制器厂商以通常上不 同，与分组交换机厂商也可 以不同</li>
+</ul>
+<h3 id="通用转发和SDN"><a href="#通用转发和SDN" class="headerlink" title="通用转发和SDN"></a>通用转发和SDN</h3><p>每个路由器包含一个流表（被逻辑上集中的控制器计算和分发）</p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161538845.png" alt="image-20211001161538845"></p>
+<h2 id="OpenFlow协议"><a href="#OpenFlow协议" class="headerlink" title="OpenFlow协议"></a>OpenFlow协议</h2><p>通用flow-bascd基于流的匹配+行动(c.g,DpcnFlow)</p>
+<p><strong>OpenFlow</strong>，一种网络通信协议，属于<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/数据链路层">数据链路层</a>，<strong>能够控制网上交换器或<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/路由器">路由器</a>的转发平面（forwarding plane），借此改变网络数据包所走的网络路径。</strong></p>
+<blockquote>
+<p>OpenFlow能够启动远程的控制器，经由<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/网络交换器/8534019">网络交换器</a>，决定网络数据包要由何种路径通过<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/网络交换机/2105356">网络交换机</a>。这个协议的发明者，将它当成<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/软件定义网络">软件定义网络</a>（Software-defined networking）的启动器。 [1] </p>
+<p>OpenFlow允许从远程控制网络交换器的<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/数据包">数据包</a>转送表，透过新增、修改与移除数据包控制规则与行动，来改变数据包转送的路径。比起用<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/访问控制表">访问控制表</a>(ACLs) 和路由协议，允许更复杂的流量管理。同时，OpenFlow允许不同供应商用一个简单，开源的协议去远程管理交换机（通常提供专有的接口和描述语言）。</p>
+<p>OpenFlow<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/协议">协议</a>用来描述控制器和交换机之间交互所用信息的标准，以及控制器和交换机的接口标准。协议的核心部分是用于OpenFlow协议信息结构的集合。</p>
+<p>OpenFlow<a target="_blank" rel="noopener" href="https://baike.baidu.com/item/协议支持">协议支持</a>三种信息类型：Controller-to-Switch，Asynchronous和Symmetric，每一个类型都有多个子类型。Controller-to-Switch信息由控制器发起并且直接用于检测交换机的状态。Asynchronous信息由交换机发起并通常用于更新控制器的网络事件和改变交换机的状态。Symmetric信息可以在没有请求的情况下由控制器或交换机发起。</p>
+</blockquote>
+<h3 id="OpenFlow-数据平面抽象"><a href="#OpenFlow-数据平面抽象" class="headerlink" title="OpenFlow 数据平面抽象"></a>OpenFlow 数据平面抽象</h3><ul>
+<li><strong>流: 由分组（帧）头部字段所定义</strong> </li>
+<li>通用转发: 简单的分组处理规则 <ul>
+<li>模式: 将分组头部字段和流表进行匹配 </li>
+<li>行动：对于匹配上的分组，可以是丢弃、转发、修改、 将匹配的分组发送给控制器 </li>
+<li>优先权Priority: 几个模式匹配了，优先采用哪个，消除歧 义 </li>
+<li>计数器Counters: #bytes 以及 #packets</li>
+</ul>
+</li>
+</ul>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161610989.png" alt="image-20211001161610989"></p>
+<h3 id="OpenFlow-流表的表项结构"><a href="#OpenFlow-流表的表项结构" class="headerlink" title="OpenFlow: 流表的表项结构"></a>OpenFlow: 流表的表项结构</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161724509.png" alt="image-20211001161724509"></p>
+<h4 id="例子-基于目标的转发"><a href="#例子-基于目标的转发" class="headerlink" title="例子 基于目标的转发"></a>例子 基于目标的转发</h4><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161743836.png" alt="image-20211001161743836"></p>
+<p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161759335.png" alt="image-20211001161759335"></p>
+<h3 id="OpenFlow-抽象"><a href="#OpenFlow-抽象" class="headerlink" title="OpenFlow 抽象"></a>OpenFlow 抽象</h3><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161825639.png" alt="image-20211001161825639"></p>
+<h4 id="OpenFlow-例子"><a href="#OpenFlow-例子" class="headerlink" title="OpenFlow 例子"></a>OpenFlow 例子</h4><p><img src="http://knight777.oss-cn-beijing.aliyuncs.com/img/image-20211001161835426.png" alt="image-20211001161835426"></p>
+<p>问题: 转发表(基于目标的转发)和 流表（通用转发）是如何计算出 来的？ 答案: 通过控制平面(下一章)</p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Network/" rel="tag"># Network</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%B8%89%E7%AB%A0/" rel="prev" title="计算机网络第三章 传输层">
+      <i class="fa fa-chevron-left"></i> 计算机网络第三章 传输层
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2022/06/29/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C%E7%AC%AC%E4%BA%94%E7%AB%A0/" rel="next" title="计算机网络第五章 网络层控制平面">
+      计算机网络第五章 网络层控制平面 <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+
+
+          </div>
+          
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#%E7%AC%AC-4-%E7%AB%A0-%E7%BD%91%E7%BB%9C%E5%B1%82%EF%BC%9A%E6%95%B0%E6%8D%AE%E5%B9%B3%E9%9D%A2"><span class="nav-number">1.</span> <span class="nav-text">第 4 章 网络层：数据平面</span></a></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-1-%E5%AF%BC%E8%AE%BA"><span class="nav-number">2.</span> <span class="nav-text">4.1 导论</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%B1%82%E6%9C%8D%E5%8A%A1"><span class="nav-number">2.1.</span> <span class="nav-text">网络层服务</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%B1%82%E7%9A%84%E5%85%B3%E9%94%AE%E5%8A%9F%E8%83%BD"><span class="nav-number">2.2.</span> <span class="nav-text">网络层的关键功能</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%B1%82%EF%BC%9A%E6%95%B0%E6%8D%AE%E5%B9%B3%E9%9D%A2%E3%80%81%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">2.3.</span> <span class="nav-text">网络层：数据平面、控制平面</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%EF%BC%9A%E6%AF%8F-%E8%B7%AF%E7%94%B1%E5%99%A8-Per-router-%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">2.3.1.</span> <span class="nav-text">传统方式：每-路由器(Per-router)控制平面</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN%E6%96%B9%E5%BC%8F%EF%BC%9A%E9%80%BB%E8%BE%91%E9%9B%86%E4%B8%AD%E7%9A%84%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">2.3.2.</span> <span class="nav-text">SDN方式：逻辑集中的控制平面</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E6%9C%8D%E5%8A%A1%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.4.</span> <span class="nav-text">网络服务模型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BF%9E%E6%8E%A5%E5%BB%BA%E7%AB%8B"><span class="nav-number">2.4.1.</span> <span class="nav-text">连接建立</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%80%E4%BA%9B%E7%BD%91%E7%BB%9C%E5%B1%82%E6%9C%8D%E5%8A%A1%E6%A8%A1%E5%9E%8B"><span class="nav-number">2.4.2.</span> <span class="nav-text">一些网络层服务模型</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-2-%E8%B7%AF%E7%94%B1%E5%99%A8%E7%BB%84%E6%88%90"><span class="nav-number">3.</span> <span class="nav-text">4.2 路由器组成</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B7%AF%E7%94%B1%E5%99%A8%E7%BB%93%E6%9E%84%E6%A6%82%E5%86%B5-%E4%BC%A0%E7%BB%9F"><span class="nav-number">3.1.</span> <span class="nav-text">路由器结构概况 (传统)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3%E5%8A%9F%E8%83%BD"><span class="nav-number">3.2.</span> <span class="nav-text">输入端口功能</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%85%A5%E7%AB%AF%E5%8F%A3%E7%BC%93%E5%AD%98"><span class="nav-number">3.2.1.</span> <span class="nav-text">输入端口缓存</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%A4%E6%8D%A2%E7%BB%93%E6%9E%84"><span class="nav-number">3.3.</span> <span class="nav-text">交换结构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E8%BF%87%E5%86%85%E5%AD%98%E4%BA%A4%E6%8D%A2"><span class="nav-number">3.3.1.</span> <span class="nav-text">通过内存交换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E8%BF%87%E6%80%BB%E7%BA%BF%E4%BA%A4%E6%8D%A2"><span class="nav-number">3.3.2.</span> <span class="nav-text">通过总线交换</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E8%BF%87%E4%BA%92%E8%81%94%E7%BD%91%E7%BB%9C-crossbar%E7%AD%89-%E7%9A%84%E4%BA%A4%E6%8D%A2"><span class="nav-number">3.3.3.</span> <span class="nav-text">通过互联网络(crossbar等)的交换</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3"><span class="nav-number">3.4.</span> <span class="nav-text">输出端口</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BE%93%E5%87%BA%E7%AB%AF%E5%8F%A3%E6%8E%92%E9%98%9F"><span class="nav-number">3.4.1.</span> <span class="nav-text">输出端口排队</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9C%80%E8%A6%81%E5%A4%9A%E5%B0%91%E7%BC%93%E5%AD%98"><span class="nav-number">3.4.2.</span> <span class="nav-text">需要多少缓存?</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E6%9C%BA%E5%88%B6"><span class="nav-number">3.5.</span> <span class="nav-text">调度机制</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%EF%BC%9A%E4%BC%98%E5%85%88%E6%9D%83"><span class="nav-number">3.5.1.</span> <span class="nav-text">调度策略：优先权</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%B0%83%E5%BA%A6%E7%AD%96%E7%95%A5%EF%BC%9A%E5%85%B6%E4%BB%96%E7%9A%84"><span class="nav-number">3.5.2.</span> <span class="nav-text">调度策略：其他的</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-3-IP-Internet-Protocol"><span class="nav-number">4.</span> <span class="nav-text">4.3 IP: Internet Protocol</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#IP-%E6%95%B0%E6%8D%AE%E6%8A%A5%E6%A0%BC%E5%BC%8F"><span class="nav-number">4.1.</span> <span class="nav-text">IP 数据报格式</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IP-%E5%88%86%E7%89%87%E5%92%8C%E9%87%8D%E7%BB%84-Fragmentation-amp-Reassembly"><span class="nav-number">4.2.</span> <span class="nav-text">IP 分片和重组(Fragmentation &amp; Reassembly)</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IP-%E7%BC%96%E5%9D%80-%E5%BC%95%E8%AE%BA"><span class="nav-number">4.3.</span> <span class="nav-text">IP 编址: 引论</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%90%E7%BD%91-Subnets"><span class="nav-number">4.3.1.</span> <span class="nav-text">子网(Subnets)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IP-%E5%9C%B0%E5%9D%80%E5%88%86%E7%B1%BB"><span class="nav-number">4.3.2.</span> <span class="nav-text">IP 地址分类</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%89%B9%E6%AE%8AIP%E5%9C%B0%E5%9D%80"><span class="nav-number">4.3.3.</span> <span class="nav-text">特殊IP地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%86%85%E7%BD%91-%E4%B8%93%E7%94%A8-IP%E5%9C%B0%E5%9D%80"><span class="nav-number">4.3.4.</span> <span class="nav-text">内网(专用)IP地址</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IP-%E7%BC%96%E5%9D%80-CIDR"><span class="nav-number">4.3.5.</span> <span class="nav-text">IP 编址: CIDR</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%90%E7%BD%91%E6%8E%A9%E7%A0%81-subnet-mask"><span class="nav-number">4.3.6.</span> <span class="nav-text">子网掩码(subnet mask)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%BD%AC%E5%8F%91%E8%A1%A8%E5%92%8C%E8%BD%AC%E5%8F%91%E7%AE%97%E6%B3%95"><span class="nav-number">4.3.7.</span> <span class="nav-text">转发表和转发算法</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E8%8E%B7%E5%BE%97%E4%B8%80%E4%B8%AAIP%E5%9C%B0%E5%9D%80-%E4%B8%BB%E6%9C%BA"><span class="nav-number">4.4.</span> <span class="nav-text">如何获得一个IP地址   主机</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#DHCP-Dynamic-Host-Configuration-Protocol"><span class="nav-number">4.4.1.</span> <span class="nav-text">DHCP: Dynamic Host Configuration Protocol</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DHCP-client-server-scenario"><span class="nav-number">4.4.2.</span> <span class="nav-text">DHCP client-server scenario</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DHCP-%E4%B8%8D%E4%BB%85%E4%BB%85%E6%98%AFIP-addresses"><span class="nav-number">4.4.3.</span> <span class="nav-text">DHCP: 不仅仅是IP addresses</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DHCP-%E5%AE%9E%E4%BE%8B"><span class="nav-number">4.4.4.</span> <span class="nav-text">DHCP: 实例</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A6%82%E4%BD%95%E8%8E%B7%E5%BE%97%E4%B8%80%E4%B8%AAIP%E5%9C%B0%E5%9D%80-%E6%9C%BA%E6%9E%84"><span class="nav-number">4.5.</span> <span class="nav-text">如何获得一个IP地址   机构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%82%E6%AC%A1%E7%BC%96%E5%9D%80-%E8%B7%AF%E7%94%B1%E8%81%9A%E9%9B%86%EF%BC%88route-aggregation%EF%BC%89-%E8%81%9A%E9%9B%86"><span class="nav-number">4.5.1.</span> <span class="nav-text">层次编址: 路由聚集（route aggregation）          聚集</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%B1%82%E6%AC%A1%E7%BC%96%E5%9D%80-%E7%89%B9%E6%AE%8A%E8%B7%AF%E7%94%B1%E4%BF%A1%E6%81%AF-more-specific-routes"><span class="nav-number">4.5.2.</span> <span class="nav-text">层次编址: 特殊路由信息(more specific routes)</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IP-%E7%BC%96%E5%9D%80-%E5%A6%82%E4%BD%95%E8%8E%B7%E5%BE%97%E4%B8%80%E5%9D%97%E5%9C%B0%E5%9D%80-ISP"><span class="nav-number">4.6.</span> <span class="nav-text">IP 编址: 如何获得一块地址 ISP</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#NAT-Network-Address-Translation-%E7%BD%91%E7%BB%9C%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2-%E5%86%85%E7%BD%91"><span class="nav-number">4.7.</span> <span class="nav-text">NAT: Network Address Translation  网络地址转换(内网)</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#NAT-%E7%A9%BF%E8%B6%8A%E9%97%AE%E9%A2%98%EF%BC%88%E7%95%A5%EF%BC%89"><span class="nav-number">4.7.1.</span> <span class="nav-text">NAT 穿越问题（略）</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IPv6"><span class="nav-number">4.8.</span> <span class="nav-text">IPv6</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#IPv6%EF%BC%9A%E5%8A%A8%E6%9C%BA"><span class="nav-number">4.8.1.</span> <span class="nav-text">IPv6：动机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IPv6-%E5%A4%B4%E9%83%A8-Cont"><span class="nav-number">4.8.2.</span> <span class="nav-text">IPv6 头部 (Cont)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%92%8CIPv4%E7%9A%84%E5%85%B6%E5%AE%83%E5%8F%98%E5%8C%96"><span class="nav-number">4.8.3.</span> <span class="nav-text">和IPv4的其它变化</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%8EIPv4%E5%88%B0IPv6%E7%9A%84%E5%B9%B3%E7%A7%BB"><span class="nav-number">4.8.4.</span> <span class="nav-text">从IPv4到IPv6的平移</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9A%A7%E9%81%93-Tunneling"><span class="nav-number">4.8.5.</span> <span class="nav-text">隧道(Tunneling)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#IPv6-%E5%BA%94%E7%94%A8"><span class="nav-number">4.8.6.</span> <span class="nav-text">IPv6: 应用</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#4-4-%E9%80%9A%E7%94%A8%E8%BD%AC%E5%8F%91%E5%92%8CSDN"><span class="nav-number">5.</span> <span class="nav-text">4.4 通用转发和SDN</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%B1%82%E5%8A%9F%E8%83%BD%E4%B8%BA%E4%BE%8B%E7%9A%84%E6%95%B0%E6%8D%AE%E5%B9%B3%E9%9D%A2%E5%92%8C%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2"><span class="nav-number">5.1.</span> <span class="nav-text">网络层功能为例的数据平面和控制平面</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%AF%8F%E4%B8%AA%E8%B7%AF%E7%94%B1%E5%99%A8-Per-Route-%E7%9A%84%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2-%EF%BC%88%E4%BC%A0%E7%BB%9F%EF%BC%89"><span class="nav-number">5.2.</span> <span class="nav-text">每个路由器(Per Route)的控制平面  （传统）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%95%B0%E9%87%8F%E4%BC%97%E5%A4%9A%E3%80%81%E5%8A%9F%E8%83%BD%E5%90%84%E5%BC%82%E7%9A%84%E4%B8%AD%E9%97%B4%E7%9B%92"><span class="nav-number">5.2.1.</span> <span class="nav-text">数量众多、功能各异的中间盒</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E8%AE%BE%E5%A4%87%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2%E7%9A%84%E5%AE%9E%E7%8E%B0%E6%96%B9%E5%BC%8F%E7%89%B9%E7%82%B9"><span class="nav-number">5.2.2.</span> <span class="nav-text">网络设备控制平面的实现方式特点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BC%A0%E7%BB%9F%E6%96%B9%E5%BC%8F%E5%AE%9E%E7%8E%B0%E7%BD%91%E7%BB%9C%E5%8A%9F%E8%83%BD%E7%9A%84%E9%97%AE%E9%A2%98"><span class="nav-number">5.2.3.</span> <span class="nav-text">传统方式实现网络功能的问题</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SDN%EF%BC%9A%E9%80%BB%E8%BE%91%E4%B8%8A%E9%9B%86%E4%B8%AD%E7%9A%84%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2-%EF%BC%88%E6%96%B0%EF%BC%89"><span class="nav-number">5.3.</span> <span class="nav-text">SDN：逻辑上集中的控制平面 （新）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN%E7%9A%84%E4%B8%BB%E8%A6%81%E6%80%9D%E8%B7%AF"><span class="nav-number">5.3.1.</span> <span class="nav-text">SDN的主要思路</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN%E6%8E%A7%E5%88%B6%E5%B9%B3%E9%9D%A2%E5%92%8C%E6%95%B0%E6%8D%AE%E5%B9%B3%E9%9D%A2%E5%88%86%E7%A6%BB%E7%9A%84%E4%BC%98%E5%8A%BF"><span class="nav-number">5.3.2.</span> <span class="nav-text">SDN控制平面和数据平面分离的优势</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%B1%BB%E6%AF%94-%E4%B8%BB%E6%A1%86%E6%9E%B6%E5%88%B0PC%E7%9A%84%E6%BC%94%E5%8F%98"><span class="nav-number">5.3.3.</span> <span class="nav-text">类比: 主框架到PC的演变</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E5%B7%A5%E7%A8%8B-%E4%BC%A0%E7%BB%9F%E8%B7%AF%E7%94%B1%E6%AF%94%E8%BE%83%E5%9B%B0%E9%9A%BE"><span class="nav-number">5.4.</span> <span class="nav-text">流量工程: 传统路由比较困难</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E9%87%8F%E5%B7%A5%E7%A8%8B%EF%BC%9A%E5%9B%B0%E9%9A%BE"><span class="nav-number">5.4.1.</span> <span class="nav-text">流量工程：困难</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN%E7%89%B9%E7%82%B9"><span class="nav-number">5.4.2.</span> <span class="nav-text">SDN特点</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SDN-%E6%9E%B6%E6%9E%84"><span class="nav-number">5.5.</span> <span class="nav-text">SDN 架构</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN-%E6%9E%B6%E6%9E%84-%E6%95%B0%E6%8D%AE%E5%B9%B3%E9%9D%A2%E4%BA%A4%E6%8D%A2%E6%9C%BA"><span class="nav-number">5.5.1.</span> <span class="nav-text">SDN 架构: 数据平面交换机</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN-%E6%9E%B6%E6%9E%84-SDN%E6%8E%A7%E5%88%B6%E5%99%A8"><span class="nav-number">5.5.2.</span> <span class="nav-text">SDN 架构: SDN控制器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#SDN-%E6%9E%B6%E6%9E%84-%E6%8E%A7%E5%88%B6%E5%BA%94%E7%94%A8"><span class="nav-number">5.5.3.</span> <span class="nav-text">SDN 架构: 控制应用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%80%9A%E7%94%A8%E8%BD%AC%E5%8F%91%E5%92%8CSDN"><span class="nav-number">5.5.4.</span> <span class="nav-text">通用转发和SDN</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#OpenFlow%E5%8D%8F%E8%AE%AE"><span class="nav-number">5.6.</span> <span class="nav-text">OpenFlow协议</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#OpenFlow-%E6%95%B0%E6%8D%AE%E5%B9%B3%E9%9D%A2%E6%8A%BD%E8%B1%A1"><span class="nav-number">5.6.1.</span> <span class="nav-text">OpenFlow 数据平面抽象</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OpenFlow-%E6%B5%81%E8%A1%A8%E7%9A%84%E8%A1%A8%E9%A1%B9%E7%BB%93%E6%9E%84"><span class="nav-number">5.6.2.</span> <span class="nav-text">OpenFlow: 流表的表项结构</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BE%8B%E5%AD%90-%E5%9F%BA%E4%BA%8E%E7%9B%AE%E6%A0%87%E7%9A%84%E8%BD%AC%E5%8F%91"><span class="nav-number">5.6.2.1.</span> <span class="nav-text">例子 基于目标的转发</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#OpenFlow-%E6%8A%BD%E8%B1%A1"><span class="nav-number">5.6.3.</span> <span class="nav-text">OpenFlow 抽象</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#OpenFlow-%E4%BE%8B%E5%AD%90"><span class="nav-number">5.6.3.1.</span> <span class="nav-text">OpenFlow 例子</span></a></li></ol></li></ol></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+  <p class="site-author-name" itemprop="name">Baozi</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">10</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">3</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+
+
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+
+        
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2022</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Baozi</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-chart-area"></i>
+    </span>
+    <span title="站点总字数">140k</span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item-icon">
+      <i class="fa fa-coffee"></i>
+    </span>
+    <span title="站点阅读时长">2:07</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> & <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> 强力驱动
+  </div>
+
+
+    <script async src="//dn-lbstatics.qbox.me/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+        
+<div class="busuanzi-count">
+  <script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+    <span class="post-meta-item" id="busuanzi_container_site_uv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-user"></i>
+      </span>
+      <span class="site-uv" title="总访客量">
+        <span id="busuanzi_value_site_uv"></span>
+      </span>
+    </span>
+    <span class="post-meta-divider">|</span>
+    <span class="post-meta-item" id="busuanzi_container_site_pv" style="display: none;">
+      <span class="post-meta-item-icon">
+        <i class="fa fa-eye"></i>
+      </span>
+      <span class="site-pv" title="总访问量">
+        <span id="busuanzi_value_site_pv"></span>
+      </span>
+    </span>
+</div>
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  
+  <script color='0,0,255' opacity='0.5' zIndex='-1' count='99' src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  <script src="/lib/anime.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/pangu@4/dist/browser/pangu.min.js"></script>
+  <script src="/lib/velocity/velocity.min.js"></script>
+  <script src="/lib/velocity/velocity.ui.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+<script src="/js/motion.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+      
+
+<script>
+  if (typeof MathJax === 'undefined') {
+    window.MathJax = {
+      loader: {
+        source: {
+          '[tex]/amsCd': '[tex]/amscd',
+          '[tex]/AMScd': '[tex]/amscd'
+        }
+      },
+      tex: {
+        inlineMath: {'[+]': [['$', '$']]},
+        tags: 'ams'
+      },
+      options: {
+        renderActions: {
+          findScript: [10, doc => {
+            document.querySelectorAll('script[type^="math/tex"]').forEach(node => {
+              const display = !!node.type.match(/; *mode=display/);
+              const math = new doc.options.MathItem(node.textContent, doc.inputJax[0], display);
+              const text = document.createTextNode('');
+              node.parentNode.replaceChild(text, node);
+              math.start = {node: text, delim: '', n: 0};
+              math.end = {node: text, delim: '', n: 0};
+              doc.math.push(math);
+            });
+          }, '', false],
+          insertedScript: [200, () => {
+            document.querySelectorAll('mjx-container').forEach(node => {
+              let target = node.parentNode;
+              if (target.nodeName.toLowerCase() === 'li') {
+                target.parentNode.classList.add('has-jax');
+              }
+            });
+          }, '', false]
+        }
+      }
+    };
+    (function () {
+      var script = document.createElement('script');
+      script.src = '//cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
+      script.defer = true;
+      document.head.appendChild(script);
+    })();
+  } else {
+    MathJax.startup.document.state(0);
+    MathJax.texReset();
+    MathJax.typeset();
+  }
+</script>
+
+    
+
+  
+
+</body>
+</html>
